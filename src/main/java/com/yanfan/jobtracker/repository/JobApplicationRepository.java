@@ -17,15 +17,14 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
             SELECT j FROM JobApplication j
             WHERE (:status IS NULL OR j.status = :status)
             AND (
-                :search IS NULL
-                OR LOWER(j.company) LIKE LOWER(CONCAT('%', :search, '%'))
+                LOWER(j.company) LIKE LOWER(CONCAT('%', :search, '%'))
                 OR LOWER(j.title) LIKE LOWER(CONCAT('%', :search, '%'))
             )
             """)
     Page<JobApplication> findWithFilters(
-      @Param("status") String status,
-      @Param("search") String search,
-      Pageable pageable
+            @Param("status") String status,
+            @Param("search") String search,
+            Pageable pageable
     );
 
 }

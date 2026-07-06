@@ -61,7 +61,7 @@ public class JobApplicationService {
 
         Page<JobApplication> page = repository.findWithFilters(
                 normalizeFilter(status),
-                normalizeFilter(search),
+                normalizeSearch(search),
                 pageable
         );
 
@@ -148,6 +148,15 @@ public class JobApplicationService {
         }
 
         return str;
+    }
+
+    // convert empty search values into an empty string
+    private String normalizeSearch(String search) {
+        if (search == null || search.isBlank()) {
+            return "";
+        }
+
+        return search;
     }
 
     // pagination and sorting rules

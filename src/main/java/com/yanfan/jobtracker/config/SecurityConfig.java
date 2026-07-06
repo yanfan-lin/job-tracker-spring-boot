@@ -35,14 +35,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
-                        // public read endpoints
-                        .requestMatchers(HttpMethod.GET, "/applications/**").permitAll()
-
-                        // public health check for local testing, Docker, and AWS health checks.
-                        .requestMatchers("/actuator/health").permitAll()
-
-                        // public API documentation paths
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        // all read endpoints are public
+                        .requestMatchers(HttpMethod.GET, "/**").permitAll()
 
                         // all other requests need authentication
                         .anyRequest().authenticated()
