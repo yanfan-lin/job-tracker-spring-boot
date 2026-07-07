@@ -1,12 +1,9 @@
 package com.yanfan.jobtracker.service;
 
-import com.yanfan.jobtracker.exception.ResourceNotFoundException;
-
-import java.util.Optional;
-
+import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
 import com.yanfan.jobtracker.dto.JobApplicationRequest;
 import com.yanfan.jobtracker.dto.JobApplicationResponse;
-import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
+import com.yanfan.jobtracker.exception.ResourceNotFoundException;
 import com.yanfan.jobtracker.model.JobApplication;
 import com.yanfan.jobtracker.repository.JobApplicationRepository;
 import org.junit.jupiter.api.Test;
@@ -14,15 +11,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.*;
+
 
 // unit tests for JobApplicationService
 // repository is mocked, so a real database is not needed
@@ -180,5 +180,107 @@ class JobApplicationServiceTest {
         verify(repository).existsById(999L);
         verify(repository, never()).deleteById(999L);
     }
+
+    // test for findAll() with filters and pagination
+    @Test
+    void findAll_shouldReturnApplicationsWithFilters() {
+        JobApplication application = new JobApplication(
+                "Microsoft",
+                "Java Developer",
+                "interview",
+                LocalDate.of(2026, 7, 3),
+                "Recruiter screen scheduled"
+        );
+
+        when(repository.findWithFilters(
+                any(String.class),
+                any(String.class),
+                any(Pageable.class)
+        )).thenReturn(new PageImpl<>(List.of(application)));
+
+        List<JobApplicationResponse> responses = service.findAll(
+                "interview",
+                "java",
+                "date_applied",
+                "asc",
+                10,
+                0
+        );
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).getCompany()).isEqualTo("Microsoft");
+        assertThat(responses.get(0).getTitle()).isEqualTo("Java Developer");
+        assertThat(responses.get(0).getStatus()).isEqualTo("interview");
+        assertThat(responses.get(0).getDateApplied()).isEqualTo(LocalDate.of(2026, 7, 3));
+        assertThat(responses.get(0).getNotes()).isEqualTo("Recruiter screen scheduled");
+
+        verify(repository).findWithFilters(
+                any(String.class),
+                any(String.class),
+                any(Pageable.class)
+        );
+
+    }
+
+    // test for findAll() when limit is invalid
+    @Test
+    void findAll_shouldThrowExceptionWhenLimitIsInvalid() {
+        assertThatThrownBy(() -> service.findAll(
+                null,
+                null,
+                "date_applied",
+                "asc",
+                0,
+                0
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("limit must be greater than 0");
+    }
+
+    // test for findAll() when offset is invalid
+    @Test
+    void findAll_shouldThrowExceptionWhenOffsetIsInvalid() {
+        assertThatThrownBy(() -> service.findAll(
+                null,
+                null,
+                "date_applied",
+                "asc",
+                10,
+                -1
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("offset cannot be negative");
+    }
+
+    // test for findAll() when sort_by is invalid
+    @Test
+    void findAll_shouldThrowExceptionWhenSortByIsInvalid() {
+        assertThatThrownBy(() -> service.findAll(
+                null,
+                null,
+                "random",
+                "asc",
+                10,
+                0
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("sort_by must be one of: id, company, title, status, date_applied, created_at, updated_at");
+    }
+
+    // test for findAll() when order is invalid
+    @Test
+    void findAll_shouldThrowExceptionWhenOrderIsInvalid() {
+        assertThatThrownBy(() -> service.findAll(
+                null,
+                null,
+                "date_applied",
+                "random",
+                10,
+                0
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("order must be either asc or desc");
+    }
+
 
 }
