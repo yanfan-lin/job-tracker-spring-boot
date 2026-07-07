@@ -1,8 +1,11 @@
 package com.yanfan.jobtracker.controller;
 
+import com.yanfan.jobtracker.dto.JobApplicationRequest;
 import com.yanfan.jobtracker.dto.JobApplicationResponse;
 import com.yanfan.jobtracker.service.JobApplicationService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,6 +48,22 @@ public class JobApplicationController {
 
         return ResponseEntity.ok(theApplication);
     }
+
+    // POST /applications
+    // creates a new job application record
+    // request body validation handled by @Valid and the DTO validation
+    @PostMapping
+    public ResponseEntity<JobApplicationResponse> create(
+            @Valid @RequestBody JobApplicationRequest request
+    ) {
+        JobApplicationResponse theApplication = service.create(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(theApplication);
+    }
+
+
+
+
 
 
 }
