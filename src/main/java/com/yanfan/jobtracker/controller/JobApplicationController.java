@@ -1,5 +1,6 @@
 package com.yanfan.jobtracker.controller;
 
+import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
 import com.yanfan.jobtracker.dto.JobApplicationRequest;
 import com.yanfan.jobtracker.dto.JobApplicationResponse;
 import com.yanfan.jobtracker.service.JobApplicationService;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// handle HTTP requests
+// handles HTTP requests
 @RestController
 @RequestMapping("/applications")
 public class JobApplicationController {
@@ -61,9 +62,27 @@ public class JobApplicationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(theApplication);
     }
 
+    // PATCH /applications/{id}
+    // partially updates an existing job application
+    // all fields are optional
+    @PatchMapping("/{id}")
+    public ResponseEntity<JobApplicationResponse> patch(
+            @PathVariable Long id,
+            @Valid @RequestBody JobApplicationPatchRequest request
+    ) {
+        JobApplicationResponse updatedApplication = service.patch(id, request);
 
+        return ResponseEntity.ok(updatedApplication);
+    }
 
+    // DELETE /applications/{id}
+    // deletes a job application by id
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        service.delete(id);
 
+        return ResponseEntity.noContent().build();
+    }
 
 
 }

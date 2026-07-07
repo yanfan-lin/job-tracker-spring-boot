@@ -109,7 +109,7 @@ public class JobApplicationService {
             theApplication.setNotes(request.getNotes());
         }
 
-        JobApplication updatedApplication = repository.save(theApplication);
+        JobApplication updatedApplication = repository.saveAndFlush(theApplication);
 
         return mapToResponse(updatedApplication);
 
