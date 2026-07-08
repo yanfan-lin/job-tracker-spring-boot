@@ -1,6 +1,6 @@
 # Job Tracker Spring Boot API
 
-[![My Skills](https://skillicons.dev/icons?i=java,spring,maven,postgres,docker,git,github)](https://skillicons.dev)
+[![My Skills](https://skillicons.dev/icons?i=java,spring,maven,hibernate,postgres,docker,git,github,githubactions)](https://skillicons.dev)
 
 ![Java CI](https://github.com/yanfan-lin/job-tracker-spring-boot/actions/workflows/ci.yml/badge.svg)
 
