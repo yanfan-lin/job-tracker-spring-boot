@@ -16,9 +16,9 @@ services:
     volumes:
       - job_tracker_data:/var/lib/postgresql/data
 
-    # verifies when PostgreSQL is ready before the app tries to connect
+    # verifies whether PostgreSQL is ready before the app tries to connect
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d job_tracker"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d job_tracker" ]
       interval: 5s
       timeout: 5s
       retries: 5
