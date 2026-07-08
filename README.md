@@ -19,7 +19,7 @@ deleting, filtering, searching, sorting, and paginating job application records.
 - Filter applications by status
 - Search applications by company or title
 - Sort applications by selected fields
-- Paginate results with limit and offset
+- Paginate results with page and limit
 - Validate request bodies with DTO validation
 - Return structured JSON error responses
 - Use HTTP Basic authentication for write operations
@@ -314,7 +314,7 @@ For real deployment, credentials should be provided through environment variable
 | `sort_by` | `date_applied` | Sort field                      |
 | `order`   | `asc`          | Sort direction: `asc` or `desc` |
 | `limit`   | `10`           | Number of records per page      |
-| `offset`  | `0`            | Starting offset                 |
+| `page`    | `0`            | Page number, starting from 0    |
 
 Supported `status` values:
 
@@ -356,7 +356,7 @@ curl -i "http://localhost:8080/applications?status=interview"
 ### Sort and paginate
 
 ```bash
-curl -i "http://localhost:8080/applications?sort_by=date_applied&order=asc&limit=5&offset=0"
+curl -i "http://localhost:8080/applications?sort_by=date_applied&order=asc&limit=5&page=0"
 ```
 
 ### Create an application

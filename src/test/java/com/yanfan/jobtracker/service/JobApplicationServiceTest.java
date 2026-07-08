@@ -237,9 +237,9 @@ class JobApplicationServiceTest {
                 .hasMessage("limit must be greater than 0");
     }
 
-    // test for findAll() when offset is invalid
+    // test for findAll() when page is invalid
     @Test
-    void findAll_shouldThrowExceptionWhenOffsetIsInvalid() {
+    void findAll_shouldThrowExceptionWhenPageIsInvalid() {
         assertThatThrownBy(() -> service.findAll(
                 null,
                 null,
@@ -249,7 +249,7 @@ class JobApplicationServiceTest {
                 -1
         ))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("offset cannot be negative");
+                .hasMessage("page cannot be negative");
     }
 
     // test for findAll() when sort_by is invalid

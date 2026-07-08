@@ -34,9 +34,9 @@ public class JobApplicationController {
             @RequestParam(name = "sort_by", defaultValue = "date_applied") String sortBy,
             @RequestParam(defaultValue = "desc") String order,
             @RequestParam(defaultValue = "10") int limit,
-            @RequestParam(defaultValue = "0") int offset
+            @RequestParam(defaultValue = "0") int page
     ) {
-        List<JobApplicationResponse> applications = service.findAll(status, search, sortBy, order, limit, offset);
+        List<JobApplicationResponse> applications = service.findAll(status, search, sortBy, order, limit, page);
 
         return ResponseEntity.ok(applications);
     }

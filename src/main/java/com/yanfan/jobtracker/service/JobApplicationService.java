@@ -54,18 +54,18 @@ public class JobApplicationService {
             String sortBy,
             String order,
             int limit,
-            int offset
+            int page
     ) {
         // create the pagination and sorting rules
-        Pageable pageable = buildPageable(sortBy, order, limit, offset);
+        Pageable pageable = buildPageable(sortBy, order, limit, page);
 
-        Page<JobApplication> page = repository.findWithFilters(
+        Page<JobApplication> thePage = repository.findWithFilters(
                 normalizeFilter(status),
                 normalizeSearch(search),
                 pageable
         );
 
-        return page.getContent()
+        return thePage.getContent()
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -160,20 +160,19 @@ public class JobApplicationService {
     }
 
     // pagination and sorting rules
-    private Pageable buildPageable(String sortBy, String order, int limit, int offset) {
+    private Pageable buildPageable(String sortBy, String order, int limit, int page) {
         if (limit <= 0) {
             throw new IllegalArgumentException("limit must be greater than 0");
         }
 
-        if (offset < 0) {
-            throw new IllegalArgumentException("offset cannot be negative");
+        if (page < 0) {
+            throw new IllegalArgumentException("page cannot be negative");
         }
 
-        int pageNum = offset / limit;
         String sortField = mapSortField(sortBy);
         Sort.Direction direction = mapSortDirection(order);
 
-        return PageRequest.of(pageNum, limit, Sort.by(direction, sortField));
+        return PageRequest.of(page, limit, Sort.by(direction, sortField));
 
     }
 

@@ -8,7 +8,10 @@ COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
 
-# Install dependencies
+# make the Maven wrapper executable inside the Linux container
+RUN chmod +x mvnw
+
+# install dependencies
 RUN ./mvnw dependency:go-offline
 
 # copy application source code
