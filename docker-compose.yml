@@ -1,0 +1,45 @@
+# Runs the Job Tracker API together with a PostgreSQL database
+services:
+  db:
+    image: postgres:16
+    container_name: job-tracker-db
+
+    # create the local Docker db used by the Spring Boot app
+    environment:
+      POSTGRES_DB: job_tracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - job_tracker_data:/var/lib/postgresql/data
+
+    # verifies when PostgreSQL is ready before the app tries to connect
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d job_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: job-tracker-api
+
+    environment:
+      DATABASE_URL: jdbc:postgresql://db:5432/job_tracker
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      APP_USERNAME: admin
+      APP_PASSWORD: changeme
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  job_tracker_data:

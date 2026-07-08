@@ -1,0 +1,13 @@
+# Build output should not be copied into Docker image.
+target/
+
+# IDE and local machine files are not needed inside the image.
+.idea/
+*.iml
+
+# Git history is not needed inside the image.
+.git/
+.gitignore
+
+# Local environment files should not be copied into Docker image.
+.env
