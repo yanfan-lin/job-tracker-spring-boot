@@ -28,6 +28,18 @@ public class GlobalExceptionHandler {
 
     }
 
+    // handles registration attempts using an existing email address
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateEmail(DuplicateEmailException e) {
+        Map<String, Object> error = buildErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                e.getMessage()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     // handles invalid query parameters, such as invalid sort_by, order, limit, or offset
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException e) {

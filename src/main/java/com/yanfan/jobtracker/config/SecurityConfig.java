@@ -35,6 +35,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
+                        // user registration is public
+                        .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
+
                         // all read endpoints are public
                         .requestMatchers(HttpMethod.GET, "/**").permitAll()
 

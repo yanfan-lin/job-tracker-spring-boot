@@ -1,0 +1,176 @@
+package com.yanfan.jobtracker.controller;
+
+import com.yanfan.jobtracker.dto.AppUserResponse;
+import com.yanfan.jobtracker.dto.RegisterRequest;
+import com.yanfan.jobtracker.exception.DuplicateEmailException;
+import com.yanfan.jobtracker.service.AuthService;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDateTime;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+
+// controller tests for AuthController
+// The service is mocked so the tests focus on HTTP behavior
+@WebMvcTest(AuthController.class)
+@AutoConfigureMockMvc(addFilters = false)
+class AuthControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private AuthService authService;
+
+
+    // verifies that a valid registration returns 201 created
+    @Test
+    void register_shouldReturnCreatedUser() throws Exception {
+        String request = """
+                {
+                    "email": "person@example.com",
+                    "password": "password123"
+                }
+                """;
+
+        AppUserResponse response = new AppUserResponse(
+                1L,
+                "person@example.com",
+                LocalDateTime.of(2026, 7, 24, 18, 30)
+        );
+
+        when(authService.register(any(RegisterRequest.class)))
+                .thenReturn(response);
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.email").value("person@example.com"))
+                .andExpect(jsonPath("$.createdAt").value("2026-07-24T18:30:00"))
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+    }
+
+    // verifies that an invalid registration input returns 400 bad request
+    @Test
+    void register_shouldReturnBadRequestWhenRequestIsInvalid() throws Exception {
+        String request = """
+                {
+                    "email": "blahblah",
+                    "password": "123"
+                }
+                """;
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Validation Error"))
+                .andExpect(jsonPath("$.message").value("Request body validation failed"))
+                .andExpect(jsonPath("$.fieldErrors.email").value("Email must be valid"))
+                .andExpect(jsonPath("$.fieldErrors.password")
+                        .value("Password must be at least 8 characters"));
+
+        // validation should stop the request before calling AuthService
+        verifyNoInteractions(authService);
+
+    }
+
+    // verifies that registering an existing email returns 409 conflict
+    @Test
+    void register_shouldReturnConflictWhenEmailAlreadyExists() throws Exception {
+        String request = """
+                {
+                    "email": "person@example.com",
+                    "password": "password123"
+                }
+                """;
+
+        when(authService.register(any(RegisterRequest.class)))
+                .thenThrow(new DuplicateEmailException(
+                        "Email is already registered"
+                ));
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.message")
+                        .value("Email is already registered"));
+    }
+
+    // verifies that malformed registration JSON request body returns 400 bad request
+    @Test
+    void register_shouldReturnBadRequestWhenJsonIsMalformed() throws Exception {
+        String request = """
+                {
+                    "email": "person@example.com",
+                    "password": "password123"
+                """;
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message")
+                        .value("Malformed JSON request body"));
+
+        // malformed JSON should not be converted into RegisterRequest
+        verifyNoInteractions(authService);
+
+    }
+
+    // verifies that surrounding email whitespace is removed before calling AuthService
+    @Test
+    void register_shouldTrimEmailBeforeCallingService() throws Exception {
+        String request = """
+                {
+                    "email": "  Person@Example.COM  ",
+                    "password": "password123"
+                }
+                """;
+
+        AppUserResponse response = new AppUserResponse(
+                1L,
+                "person@example.com",
+                LocalDateTime.of(2026, 7, 24, 19, 30)
+        );
+
+        when(authService.register(any(RegisterRequest.class)))
+                .thenReturn(response);
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<RegisterRequest> requestCaptor =
+                ArgumentCaptor.forClass(RegisterRequest.class);
+
+        verify(authService).register(requestCaptor.capture());
+
+        assertThat(requestCaptor.getValue().getEmail())
+                .isEqualTo("Person@Example.COM");
+    }
+
+}
