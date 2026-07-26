@@ -1,8 +1,11 @@
 package com.yanfan.jobtracker.service;
 
 import com.yanfan.jobtracker.dto.AppUserResponse;
+import com.yanfan.jobtracker.dto.LoginRequest;
+import com.yanfan.jobtracker.dto.LoginResponse;
 import com.yanfan.jobtracker.dto.RegisterRequest;
 import com.yanfan.jobtracker.exception.DuplicateEmailException;
+import com.yanfan.jobtracker.exception.InvalidCredentialsException;
 import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.repository.AppUserRepository;
 import org.junit.jupiter.api.Test;
@@ -13,6 +16,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,6 +35,9 @@ class AuthServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private JwtService jwtService;
 
     @InjectMocks
     private AuthService authService;
@@ -122,6 +130,108 @@ class AuthServiceTest {
         verify(appUserRepository).existsByEmail("person@example.com");
         verify(passwordEncoder).encode("password123");
         verify(appUserRepository).saveAndFlush(any(AppUser.class));
+
+    }
+
+    // test successful login and JWT generation
+    @Test
+    void login_shouldReturnJwtWhenCredentialsAreValid() {
+        LoginRequest request = new LoginRequest(
+                " Person@Example.COM ",
+                "password123"
+        );
+
+        AppUser user = new AppUser(
+                "person@example.com",
+                "hashed-password"
+        );
+
+        when(appUserRepository.findByEmail("person@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(passwordEncoder.matches(
+                "password123",
+                "hashed-password"
+        )).thenReturn(true);
+
+        when(jwtService.generateToken(user))
+                .thenReturn("signed-jwt-token");
+
+        when(jwtService.getExpirationSeconds())
+                .thenReturn(3600L);
+
+        LoginResponse response = authService.login(request);
+
+        assertThat(response.getAccessToken())
+                .isEqualTo("signed-jwt-token");
+        assertThat(response.getTokenType())
+                .isEqualTo("Bearer");
+        assertThat(response.getExpiresIn())
+                .isEqualTo(3600L);
+
+        verify(appUserRepository)
+                .findByEmail("person@example.com");
+        verify(passwordEncoder)
+                .matches("password123", "hashed-password");
+        verify(jwtService).generateToken(user);
+    }
+
+    // test login when the email does not exist
+    @Test
+    void login_shouldThrowExceptionWhenEmailDoesNotExist() {
+        LoginRequest request = new LoginRequest(
+                "blahblah@example.com",
+                "password123"
+        );
+
+        when(appUserRepository.findByEmail("blahblah@example.com"))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessage("Invalid email or password");
+
+        verify(appUserRepository).findByEmail("blahblah@example.com");
+
+        // login stops before password comparison or token generation
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(jwtService, never()).generateToken(any(AppUser.class));
+
+    }
+
+    // test login with incorrect password
+    @Test
+    void login_shouldThrowExceptionWhenPasswordIsIncorrect() {
+        LoginRequest request = new LoginRequest(
+                "blahblah@example.com",
+                "wrong-password"
+        );
+
+        AppUser user = new AppUser(
+                "blahblah@example.com",
+                "hashed-password"
+        );
+
+        when(appUserRepository.findByEmail("blahblah@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(passwordEncoder.matches(
+                "wrong-password",
+                "hashed-password"
+        )).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessage("Invalid email or password");
+
+        verify(appUserRepository)
+                .findByEmail("blahblah@example.com");
+
+        verify(passwordEncoder)
+                .matches("wrong-password", "hashed-password");
+
+        // for incorrect password, a JWT should never be generated
+        verify(jwtService, never()).generateToken(any(AppUser.class));
 
     }
 

@@ -2,7 +2,10 @@ package com.yanfan.jobtracker.controller;
 
 import com.yanfan.jobtracker.dto.AppUserResponse;
 import com.yanfan.jobtracker.dto.RegisterRequest;
+import com.yanfan.jobtracker.dto.LoginRequest;
+import com.yanfan.jobtracker.dto.LoginResponse;
 import com.yanfan.jobtracker.exception.DuplicateEmailException;
+import com.yanfan.jobtracker.exception.InvalidCredentialsException;
 import com.yanfan.jobtracker.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -172,5 +175,113 @@ class AuthControllerTest {
         assertThat(requestCaptor.getValue().getEmail())
                 .isEqualTo("Person@Example.COM");
     }
+
+    // verifies that valid logins return a JWT response
+    @Test
+    void login_shouldReturnJwtResponse() throws Exception {
+        String request = """
+                {
+                    "email": "person@example.com",
+                    "password": "password123"
+                }
+                """;
+
+        LoginResponse response = new LoginResponse(
+                "signed-jwt-token",
+                "Bearer",
+                3600L
+        );
+
+        when(authService.login(any(LoginRequest.class)))
+                .thenReturn(response);
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken")
+                        .value("signed-jwt-token"))
+                .andExpect(jsonPath("$.tokenType")
+                        .value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn")
+                        .value(3600));
+
+    }
+
+    // verifies that incorrect logins return 401 unauthorized
+    @Test
+    void login_shouldReturnUnauthorizedWhenCredentialsAreInvalid() throws Exception {
+        String request = """
+                {
+                    "email": "person@example.com",
+                    "password": "wrong-password"
+                }
+                """;
+
+        when(authService.login(any(LoginRequest.class)))
+                .thenThrow(new InvalidCredentialsException(
+                        "Invalid email or password"
+                ));
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
+                .andExpect(jsonPath("$.message")
+                        .value("Invalid email or password"));
+
+    }
+
+    // verifies that invalid logins return 400 bad request
+    @Test
+    void login_shouldReturnBadRequestWhenRequestIsInvalid() throws Exception {
+        String request = """
+                {
+                    "email": "not-an-email",
+                    "password": ""
+                }
+                """;
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Validation Error"))
+                .andExpect(jsonPath("$.message")
+                        .value("Request body validation failed"))
+                .andExpect(jsonPath("$.fieldErrors.email")
+                        .value("Email must be valid"))
+                .andExpect(jsonPath("$.fieldErrors.password")
+                        .value("Password is required"));
+
+        // invalid input should be rejected before the authentication
+        verifyNoInteractions(authService);
+    }
+
+    // verifies that malformed login JSON returns 400 bad request
+    @Test
+    void login_shouldReturnBadRequestWhenJsonIsMalformed() throws Exception {
+        String request = """
+                {
+                    "email": "person@example.com",
+                    "password": "password123"
+                """;
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message")
+                        .value("Malformed JSON request body"));
+
+        // should not create LoginRequest from malformed JSON
+        verifyNoInteractions(authService);
+    }
+
 
 }

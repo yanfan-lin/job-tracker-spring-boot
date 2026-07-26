@@ -1,18 +1,14 @@
 package com.yanfan.jobtracker.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 
@@ -21,47 +17,40 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Value("${app.security.username}")
-    private String appUsername;
-
-    @Value("${app.security.password}")
-    private String appPassword;
-
-    // define which HTTP requests are public and which require authentication
+    // defines public endpoints and JWT-protected endpoints
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // CSRF is disabled because this is a stateless REST API, not a browser form app
+                // JWT authentication does not use browser from sessions
                 .csrf(csrf -> csrf.disable())
 
+                // each request must carry its own JWT
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
                 .authorizeHttpRequests(auth -> auth
-                        // user registration is public
-                        .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
+                        // user registration and login are public
+                        .requestMatchers(HttpMethod.POST,
+                                "/auth/register",
+                                "/auth/login"
+                        ).permitAll()
 
                         // all read endpoints are public
-                        .requestMatchers(HttpMethod.GET, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/**")
+                        .permitAll()
 
-                        // all other requests need authentication
+                        // all other requests requires a valid JWT
                         .anyRequest().authenticated()
                 )
 
-                // HTTP basic auth
-                .httpBasic(Customizer.withDefaults());
+                // Reads and validates Authorization: Bearer <JWT>
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(Customizer.withDefaults())
+                );
 
         return http.build();
 
-    }
-
-    // create in-memory user for basic auth
-    // username and password come from application.properties and environment variables.
-    @Bean
-    public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
-        UserDetails user = User.withUsername(appUsername)
-                .password(passwordEncoder.encode(appPassword))
-                .roles("USER")
-                .build();
-
-        return new InMemoryUserDetailsManager(user);
     }
 
     // use BCrypt to encrypt the password

@@ -1,8 +1,11 @@
 package com.yanfan.jobtracker.service;
 
 import com.yanfan.jobtracker.dto.AppUserResponse;
+import com.yanfan.jobtracker.dto.LoginRequest;
+import com.yanfan.jobtracker.dto.LoginResponse;
 import com.yanfan.jobtracker.dto.RegisterRequest;
 import com.yanfan.jobtracker.exception.DuplicateEmailException;
+import com.yanfan.jobtracker.exception.InvalidCredentialsException;
 import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.repository.AppUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,12 +22,18 @@ public class AuthService {
 
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+
+    private static final String INVALID_CREDENTIALS_MESSAGE =
+            "Invalid email or password";
+
 
     // constructor injection
     @Autowired
-    public AuthService(AppUserRepository appUserRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(AppUserRepository appUserRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     // register a new user with normalized email and BCrypt password hash
@@ -51,6 +60,38 @@ public class AuthService {
         } catch (DataIntegrityViolationException e) {
             throw new DuplicateEmailException("Email is already registered");
         }
+
+    }
+
+    // authenticates the user and returns a signed JWT access token
+    @Transactional(readOnly = true)
+    public LoginResponse login(LoginRequest request) {
+
+        String normalizedEmail = normalizeEmail(request.getEmail());
+
+        // find the account
+        AppUser user = appUserRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() ->
+                        new InvalidCredentialsException(INVALID_CREDENTIALS_MESSAGE));
+
+        // compare submitted password with stored password
+        boolean passwordMatches = passwordEncoder.matches(
+                request.getPassword(),
+                user.getPasswordHash()
+        );
+
+        if (!passwordMatches) {
+            throw new InvalidCredentialsException(INVALID_CREDENTIALS_MESSAGE);
+        }
+
+        // generate JWT
+        String accessToken = jwtService.generateToken(user);
+
+        return new LoginResponse(
+                accessToken,
+                "Bearer",
+                jwtService.getExpirationSeconds()
+        );
 
     }
 
