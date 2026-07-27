@@ -27,7 +27,8 @@ public class JobApplicationController {
     }
 
     // GET /applications
-    // returns job application with optional filtering, search, sorting and pagination
+    // returns job application owned by the authenticated user,
+    // with optional filtering, search, sorting and pagination
     @GetMapping
     public ResponseEntity<List<JobApplicationResponse>> findAll(
             JwtAuthenticationToken authentication,
@@ -87,25 +88,34 @@ public class JobApplicationController {
     }
 
     // PATCH /applications/{id}
-    // partially updates an existing job application
+    // partially updates an application owned by the authenticated user
     // all fields are optional
     @PatchMapping("/{id}")
     public ResponseEntity<JobApplicationResponse> patch(
+            JwtAuthenticationToken authentication,
             @PathVariable Long id,
             @Valid @RequestBody JobApplicationPatchRequest request
     ) {
-        JobApplicationResponse updatedApplication = service.patch(id, request);
+        Long userId = extractUserId(authentication);
+
+        JobApplicationResponse updatedApplication = service.patch(userId, id, request);
 
         return ResponseEntity.ok(updatedApplication);
     }
 
     // DELETE /applications/{id}
-    // deletes a job application by id
+    // deletes a job application owned by the authenticated user
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.delete(id);
+    public ResponseEntity<Void> delete(
+            JwtAuthenticationToken authentication,
+            @PathVariable Long id
+    ) {
+        Long userId = extractUserId(authentication);
+
+        service.delete(userId, id);
 
         return ResponseEntity.noContent().build();
+
     }
 
     // helper to extract the database user id stored in the JWT

@@ -21,8 +21,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -233,10 +232,14 @@ class JobApplicationControllerTest {
                 LocalDateTime.of(2026, 7, 6, 11, 0)
         );
 
-        when(service.patch(any(Long.class), any(JobApplicationPatchRequest.class)))
-                .thenReturn(response);
+        when(service.patch(
+                eq(42L),
+                eq(1L),
+                any(JobApplicationPatchRequest.class)
+        )).thenReturn(response);
 
         mockMvc.perform(patch("/applications/1")
+                        .principal(createAuthentication())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isOk())
@@ -270,17 +273,22 @@ class JobApplicationControllerTest {
     // verifies that DELETE /applications/{id} returns 204 no content
     @Test
     void delete_shouldReturnNoContent() throws Exception {
-        mockMvc.perform(delete("/applications/1"))
+        mockMvc.perform(delete("/applications/1")
+                        .principal(createAuthentication()))
                 .andExpect(status().isNoContent());
+
+        verify(service).delete(42L, 1L);
+
     }
 
     // verifies that DELETE /applications/{id} returns 404 not found
     @Test
     void delete_shouldReturnNotFoundWhenApplicationDoesNotExist() throws Exception {
         doThrow(new ResourceNotFoundException("Job application not found with id: 999"))
-                .when(service).delete(999L);
+                .when(service).delete(42L, 999L);
 
-        mockMvc.perform(delete("/applications/999"))
+        mockMvc.perform(delete("/applications/999")
+                        .principal(createAuthentication()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))

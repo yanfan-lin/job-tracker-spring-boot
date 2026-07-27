@@ -170,11 +170,15 @@ class JobApplicationServiceTest {
                 "Recruiter screen scheduled"
         );
 
-        when(repository.findById(1L)).thenReturn(Optional.of(savedApplication));
-        when(repository.saveAndFlush(any(JobApplication.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findByIdAndUserId(1L, 42L))
+                .thenReturn(Optional.of(savedApplication));
 
-        JobApplicationResponse response = service.patch(1L, request);
+        when(repository.saveAndFlush(any(JobApplication.class)))
+                .thenAnswer(invocation ->
+                        invocation.getArgument(0)
+                );
+
+        JobApplicationResponse response = service.patch(42L, 1L, request);
 
         assertThat(response.getCompany()).isEqualTo("Amazon");
         assertThat(response.getTitle()).isEqualTo("Backend Developer");
@@ -182,7 +186,7 @@ class JobApplicationServiceTest {
         assertThat(response.getDateApplied()).isEqualTo(LocalDate.of(2026, 7, 6));
         assertThat(response.getNotes()).isEqualTo("Recruiter screen scheduled");
 
-        verify(repository).findById(1L);
+        verify(repository).findByIdAndUserId(1L, 42L);
         verify(repository).saveAndFlush(any(JobApplication.class));
 
     }
@@ -198,38 +202,58 @@ class JobApplicationServiceTest {
                 "This should fail"
         );
 
-        when(repository.findById(999L)).thenReturn(Optional.empty());
+        when(repository.findByIdAndUserId(999L, 42L))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.patch(999L, request))
+        assertThatThrownBy(() -> service.patch(42L, 999L, request))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Job application not found with id: 999");
 
-        verify(repository).findById(999L);
+        verify(repository).findByIdAndUserId(999L, 42L);
+
+        verify(repository, never())
+                .saveAndFlush(any(JobApplication.class));
 
     }
 
-    // test for delete() when application exists
+    // test deleting an application owned by the authenticated user
     @Test
     void delete_shouldDeleteApplicationWhenFound() {
-        when(repository.existsById(1L)).thenReturn(true);
+        JobApplication application = new JobApplication(
+                "Amazon",
+                "Backend Developer",
+                "applied",
+                LocalDate.of(2026, 7, 6),
+                "Applied through LinkedIn"
+        );
 
-        service.delete(1L);
+        when(repository.findByIdAndUserId(1L, 42L))
+                .thenReturn(Optional.of(application));
 
-        verify(repository).existsById(1L);
-        verify(repository).deleteById(1L);
+        service.delete(42L, 1L);
+
+        verify(repository).findByIdAndUserId(1L, 42L);
+        verify(repository).delete(application);
+
     }
 
-    // test for delete() when application does not exist
+    // test deleting an application that does not belong to the user
     @Test
     void delete_shouldThrowExceptionWhenNotFound() {
-        when(repository.existsById(999L)).thenReturn(false);
+        when(repository.findByIdAndUserId(999L, 42L))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.delete(999L))
+        assertThatThrownBy(() ->
+                service.delete(42L, 999L)
+        )
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Job application not found with id: 999");
 
-        verify(repository).existsById(999L);
-        verify(repository, never()).deleteById(999L);
+        verify(repository).findByIdAndUserId(999L, 42L);
+
+        verify(repository, never())
+                .delete(any(JobApplication.class));
+
     }
 
     // test for findAll() with filters and pagination

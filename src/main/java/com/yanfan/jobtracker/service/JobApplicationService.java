@@ -105,48 +105,60 @@ public class JobApplicationService {
 
     }
 
-    // partially update an existing job application
+    // partially updates an application owned by the authenticated user
     // all fields are optional
     @Transactional
-    public JobApplicationResponse patch(Long id, JobApplicationPatchRequest request) {
-
-        JobApplication theApplication = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Job application not found with id: " + id
-                ));
+    public JobApplicationResponse patch(
+            Long userId,
+            Long applicationId,
+            JobApplicationPatchRequest request
+    ) {
+        JobApplication application = repository.findByIdAndUserId(applicationId, userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Job application not found with id: " + applicationId
+                        )
+                );
 
         if (request.getCompany() != null) {
-            theApplication.setCompany(request.getCompany());
+            application.setCompany(request.getCompany());
         }
         if (request.getTitle() != null) {
-            theApplication.setTitle(request.getTitle());
+            application.setTitle(request.getTitle());
         }
         if (request.getStatus() != null) {
-            theApplication.setStatus(request.getStatus());
+            application.setStatus(request.getStatus());
         }
         if (request.getDateApplied() != null) {
-            theApplication.setDateApplied(request.getDateApplied());
+            application.setDateApplied(request.getDateApplied());
         }
         if (request.getNotes() != null) {
-            theApplication.setNotes(request.getNotes());
+            application.setNotes(request.getNotes());
         }
 
-        JobApplication updatedApplication = repository.saveAndFlush(theApplication);
+        JobApplication updatedApplication = repository.saveAndFlush(application);
 
         return mapToResponse(updatedApplication);
 
     }
 
-    // delete an existing job application
+    // delete an existing job application owned by the authenticated user
     @Transactional
-    public void delete(Long id) {
+    public void delete(
+            Long userId,
+            Long applicationId
+    ) {
+        JobApplication application = repository.findByIdAndUserId(applicationId, userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Job application not found with id: " + applicationId
+                        )
+                );
 
-        if (!repository.existsById(id)) {
-            throw new ResourceNotFoundException("Job application not found with id: " + id);
-        }
+        repository.delete(application);
 
-        repository.deleteById(id);
     }
+
 
     // convert a database entity into the response DTO returned by the API
     private JobApplicationResponse mapToResponse(JobApplication application) {

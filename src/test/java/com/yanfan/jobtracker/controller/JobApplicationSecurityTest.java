@@ -1,6 +1,7 @@
 package com.yanfan.jobtracker.controller;
 
 import com.yanfan.jobtracker.config.SecurityConfig;
+import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
 import com.yanfan.jobtracker.dto.JobApplicationRequest;
 import com.yanfan.jobtracker.dto.JobApplicationResponse;
 import com.yanfan.jobtracker.service.JobApplicationService;
@@ -54,6 +55,7 @@ class JobApplicationSecurityTest {
     // verifies that a valid JWT can read the authenticated user's applications
     @Test
     void getApplications_shouldAllowRequestWithValidJwt() throws Exception {
+
         when(service.findAll(
                 42L,
                 null,
@@ -86,6 +88,7 @@ class JobApplicationSecurityTest {
     // verifies that POST /applications requires authentication
     @Test
     void create_shouldRequireAuthentication() throws Exception {
+
         String request = """
                 {
                   "company": "Amazon",
@@ -106,6 +109,7 @@ class JobApplicationSecurityTest {
     // verifies that PATCH /applications/{id} requires authentication
     @Test
     void patch_shouldRequireAuthentication() throws Exception {
+
         String request = """
                 {
                   "status": "interview"
@@ -118,11 +122,72 @@ class JobApplicationSecurityTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // verifies that a valid JWT can update the user's application
+    @Test
+    void patch_shouldAllowRequestWithValidJwt() throws Exception {
+
+        String request = """
+                {
+                  "status": "interview",
+                  "notes": "Recruiter screen scheduled"
+                }
+                """;
+
+        JobApplicationResponse response = new JobApplicationResponse(
+                1L,
+                "Amazon",
+                "Backend Developer",
+                "interview",
+                LocalDate.of(2026, 7, 6),
+                "Recruiter screen scheduled",
+                LocalDateTime.of(2026, 7, 6, 10, 0),
+                LocalDateTime.of(2026, 7, 6, 11, 0)
+        );
+
+        when(service.patch(
+                eq(42L),
+                eq(1L),
+                any(JobApplicationPatchRequest.class)
+        )).thenReturn(response);
+
+        mockMvc.perform(patch("/applications/1")
+                        .with(jwt().jwt(token -> token
+                                .subject("person@example.com")
+                                .claim("userId", 42L)
+                        ))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status")
+                        .value("interview"));
+
+        verify(service).patch(
+                eq(42L),
+                eq(1L),
+                any(JobApplicationPatchRequest.class)
+        );
+
+    }
+
     // verifies that DELETE /applications/{id} requires authentication
     @Test
     void delete_shouldRequireAuthentication() throws Exception {
         this.mockMvc.perform(delete("/applications/1"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // verifies that a valid JWT can delete the user's application
+    @Test
+    void delete_shouldAllowRequestWithValidJwt() throws Exception {
+        this.mockMvc.perform(delete("/applications/1")
+                        .with(jwt().jwt(token -> token
+                                .subject("person@example.com")
+                                .claim("userId", 42L)
+                        )))
+                .andExpect(status().isNoContent());
+
+        verify(service).delete(42L, 1L);
+
     }
 
     // verifies that a valid JWT allows access to a protected endpoint
