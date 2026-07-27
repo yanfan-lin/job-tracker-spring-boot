@@ -61,9 +61,9 @@ public class JobApplicationService {
 
     }
 
-    // returns all job applications with optional filtering, keyword search,
-    //  sorting, and pagination
+    // return only the authenticated user's job applications
     public List<JobApplicationResponse> findAll(
+            Long userId,
             String status,
             String search,
             String sortBy,
@@ -71,14 +71,16 @@ public class JobApplicationService {
             int limit,
             int page
     ) {
-        // create the pagination and sorting rules
-        Pageable pageable = buildPageable(sortBy, order, limit, page);
+        Pageable pageable =
+                buildPageable(sortBy, order, limit, page);
 
-        Page<JobApplication> thePage = repository.findWithFilters(
-                normalizeFilter(status),
-                normalizeSearch(search),
-                pageable
-        );
+        Page<JobApplication> thePage =
+                repository.findWithFiltersForUser(
+                        userId,
+                        normalizeFilter(status),
+                        normalizeSearch(search),
+                        pageable
+                );
 
         return thePage.getContent()
                 .stream()
@@ -87,18 +89,23 @@ public class JobApplicationService {
 
     }
 
-    // Find one job application by id
-    public JobApplicationResponse findById(Long id) {
+    // find one application that belongs to the authenticated user
+    public JobApplicationResponse findById(
+            Long userId,
+            Long applicationId
+    ) {
+        JobApplication application = repository.findByIdAndUserId(applicationId, userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Job application not found with id: " + applicationId
+                        )
+                );
 
-        JobApplication theApplication = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Job application not found with id: " + id
-                ));
+        return mapToResponse(application);
 
-        return mapToResponse(theApplication);
     }
 
-    // partially updates an existing job application
+    // partially update an existing job application
     // all fields are optional
     @Transactional
     public JobApplicationResponse patch(Long id, JobApplicationPatchRequest request) {

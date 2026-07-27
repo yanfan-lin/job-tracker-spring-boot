@@ -21,10 +21,11 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // JWT authentication does not use browser from sessions
+
+                // JWT authentication does not use browser form sessions
                 .csrf(csrf -> csrf.disable())
 
-                // each request must carry its own JWT
+                // each request will carry its own JWT
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -36,11 +37,12 @@ public class SecurityConfig {
                                 "/auth/login"
                         ).permitAll()
 
-                        // all read endpoints are public
-                        .requestMatchers(HttpMethod.GET, "/**")
-                        .permitAll()
+                        // all job application endpoints require JWT
+                        .requestMatchers(
+                                "/applications",
+                                "/applications/**"
+                        ).authenticated()
 
-                        // all other requests requires a valid JWT
                         .anyRequest().authenticated()
                 )
 

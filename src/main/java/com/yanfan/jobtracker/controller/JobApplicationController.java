@@ -30,6 +30,7 @@ public class JobApplicationController {
     // returns job application with optional filtering, search, sorting and pagination
     @GetMapping
     public ResponseEntity<List<JobApplicationResponse>> findAll(
+            JwtAuthenticationToken authentication,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
             @RequestParam(name = "sort_by", defaultValue = "date_applied") String sortBy,
@@ -37,18 +38,36 @@ public class JobApplicationController {
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(defaultValue = "0") int page
     ) {
-        List<JobApplicationResponse> applications = service.findAll(status, search, sortBy, order, limit, page);
+        Long userId = extractUserId(authentication);
+
+        List<JobApplicationResponse> applications = service.findAll(
+                userId,
+                status,
+                search,
+                sortBy,
+                order,
+                limit,
+                page
+        );
 
         return ResponseEntity.ok(applications);
+
     }
 
     // GET /applications/{id}
     // returns one job application by id
     @GetMapping("/{id}")
-    public ResponseEntity<JobApplicationResponse> findById(@PathVariable Long id) {
-        JobApplicationResponse theApplication = service.findById(id);
+    public ResponseEntity<JobApplicationResponse> findById(
+            JwtAuthenticationToken authentication,
+            @PathVariable Long id
+
+    ) {
+        Long userId = extractUserId(authentication);
+
+        JobApplicationResponse theApplication = service.findById(userId, id);
 
         return ResponseEntity.ok(theApplication);
+
     }
 
     // POST /applications
@@ -59,9 +78,7 @@ public class JobApplicationController {
             JwtAuthenticationToken authentication,
             @Valid @RequestBody JobApplicationRequest request
     ) {
-        Number userIdClaim = authentication.getToken().getClaim("userId");
-
-        Long userId = userIdClaim.longValue();
+        Long userId = extractUserId(authentication);
 
         JobApplicationResponse theApplication = service.create(userId, request);
 
@@ -89,6 +106,13 @@ public class JobApplicationController {
         service.delete(id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    // helper to extract the database user id stored in the JWT
+    private Long extractUserId(JwtAuthenticationToken authentication) {
+        Number userIdClaim = authentication.getToken().getClaim("userId");
+
+        return userIdClaim.longValue();
     }
 
 

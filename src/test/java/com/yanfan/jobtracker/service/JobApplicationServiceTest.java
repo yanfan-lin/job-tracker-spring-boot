@@ -122,9 +122,10 @@ class JobApplicationServiceTest {
                 "Applied through LinkedIn"
         );
 
-        when(repository.findById(1L)).thenReturn(Optional.of(theApplication));
+        when(repository.findByIdAndUserId(1L, 42L))
+                .thenReturn(Optional.of(theApplication));
 
-        JobApplicationResponse response = service.findById(1L);
+        JobApplicationResponse response = service.findById(42L, 1L);
 
         assertThat(response.getCompany()).isEqualTo("Amazon");
         assertThat(response.getTitle()).isEqualTo("Backend Developer");
@@ -132,20 +133,21 @@ class JobApplicationServiceTest {
         assertThat(response.getDateApplied()).isEqualTo(LocalDate.of(2026, 7, 6));
         assertThat(response.getNotes()).isEqualTo("Applied through LinkedIn");
 
-        verify(repository).findById(1L);
+        verify(repository).findByIdAndUserId(1L, 42L);
 
     }
 
     // test for findById() when application not found
     @Test
     void findById_shouldThrowExceptionWhenNotFound() {
-        when(repository.findById(999L)).thenReturn(Optional.empty());
+        when(repository.findByIdAndUserId(999L, 42L))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.findById(999L))
+        assertThatThrownBy(() -> service.findById(42L, 999L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Job application not found with id: 999");
 
-        verify(repository).findById(999L);
+        verify(repository).findByIdAndUserId(999L, 42L);
 
     }
 
@@ -241,13 +243,15 @@ class JobApplicationServiceTest {
                 "Recruiter screen scheduled"
         );
 
-        when(repository.findWithFilters(
+        when(repository.findWithFiltersForUser(
+                eq(42L),
                 any(String.class),
                 any(String.class),
                 any(Pageable.class)
         )).thenReturn(new PageImpl<>(List.of(application)));
 
         List<JobApplicationResponse> responses = service.findAll(
+                42L,
                 "interview",
                 "java",
                 "date_applied",
@@ -263,7 +267,8 @@ class JobApplicationServiceTest {
         assertThat(responses.get(0).getDateApplied()).isEqualTo(LocalDate.of(2026, 7, 3));
         assertThat(responses.get(0).getNotes()).isEqualTo("Recruiter screen scheduled");
 
-        verify(repository).findWithFilters(
+        verify(repository).findWithFiltersForUser(
+                eq(42L),
                 any(String.class),
                 any(String.class),
                 any(Pageable.class)
@@ -275,6 +280,7 @@ class JobApplicationServiceTest {
     @Test
     void findAll_shouldThrowExceptionWhenLimitIsInvalid() {
         assertThatThrownBy(() -> service.findAll(
+                42L,
                 null,
                 null,
                 "date_applied",
@@ -290,6 +296,7 @@ class JobApplicationServiceTest {
     @Test
     void findAll_shouldThrowExceptionWhenPageIsInvalid() {
         assertThatThrownBy(() -> service.findAll(
+                42L,
                 null,
                 null,
                 "date_applied",
@@ -305,6 +312,7 @@ class JobApplicationServiceTest {
     @Test
     void findAll_shouldThrowExceptionWhenSortByIsInvalid() {
         assertThatThrownBy(() -> service.findAll(
+                42L,
                 null,
                 null,
                 "random",
@@ -320,6 +328,7 @@ class JobApplicationServiceTest {
     @Test
     void findAll_shouldThrowExceptionWhenOrderIsInvalid() {
         assertThatThrownBy(() -> service.findAll(
+                42L,
                 null,
                 null,
                 "date_applied",

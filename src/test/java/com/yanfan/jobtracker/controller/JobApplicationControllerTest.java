@@ -56,10 +56,19 @@ class JobApplicationControllerTest {
 
         );
 
-        when(service.findAll(null, null, "date_applied", "desc", 10, 0))
+        when(service.findAll(
+                42L,
+                null,
+                null,
+                "date_applied",
+                "desc",
+                10,
+                0
+        ))
                 .thenReturn(List.of(response));
 
-        mockMvc.perform(get("/applications"))
+        mockMvc.perform(get("/applications")
+                        .principal(createAuthentication()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1))
                 .andExpect(jsonPath("$[0].company").value("Amazon"))
@@ -84,9 +93,11 @@ class JobApplicationControllerTest {
                 LocalDateTime.of(2026, 7, 6, 10, 0)
         );
 
-        when(service.findById(1L)).thenReturn(response);
+        when(service.findById(42L, 1L))
+                .thenReturn(response);
 
-        mockMvc.perform(get("/applications/1"))
+        mockMvc.perform(get("/applications/1")
+                        .principal(createAuthentication()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.company").value("Amazon"))
@@ -99,10 +110,11 @@ class JobApplicationControllerTest {
     // verifies that GET /applications/{id} returns 404 not found
     @Test
     void findById_shouldReturnNotFoundWhenApplicationDoesNotExist() throws Exception {
-        when(service.findById(999L))
+        when(service.findById(42L, 999L))
                 .thenThrow(new ResourceNotFoundException("Job application not found with id: 999"));
 
-        mockMvc.perform(get("/applications/999"))
+        mockMvc.perform(get("/applications/999")
+                        .principal(createAuthentication()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
@@ -138,16 +150,8 @@ class JobApplicationControllerTest {
                 any(JobApplicationRequest.class)
         )).thenReturn(response);
 
-        Jwt jwt = Jwt.withTokenValue("test-token")
-                .header("alg", "HS256")
-                .subject("person@example.com")
-                .claim("userId", 42L)
-                .build();
-
-        JwtAuthenticationToken authentication = new JwtAuthenticationToken(jwt);
-
         mockMvc.perform(post("/applications")
-                        .principal(authentication)
+                        .principal(createAuthentication())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isCreated())
@@ -281,6 +285,18 @@ class JobApplicationControllerTest {
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.message").value("Job application not found with id: 999"));
+    }
+
+    // helper for the JWT generation and authentication
+    private JwtAuthenticationToken createAuthentication() {
+        Jwt jwt = Jwt.withTokenValue("test-token")
+                .header("alg", "HS256")
+                .subject("person@example.com")
+                .claim("userId", 42L)
+                .build();
+
+        return new JwtAuthenticationToken(jwt);
+
     }
 
 

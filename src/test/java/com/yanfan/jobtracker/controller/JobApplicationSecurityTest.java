@@ -41,14 +41,45 @@ class JobApplicationSecurityTest {
     private JwtDecoder jwtDecoder;
 
 
-    // verifies that GET /applications is public
+    // verifies that application data cannot be accessed without authentication
     @Test
-    void getApplications_shouldBePublic() throws Exception {
-        when(service.findAll(null, null, "date_applied", "desc", 10, 0))
-                .thenReturn(List.<JobApplicationResponse>of());
+    void getApplications_shouldRequireAuthentication() throws Exception {
+        mockMvc.perform(get("/applications"))
+                .andExpect(status().isUnauthorized());
 
-        this.mockMvc.perform(get("/applications"))
+        verifyNoInteractions(service);
+
+    }
+
+    // verifies that a valid JWT can read the authenticated user's applications
+    @Test
+    void getApplications_shouldAllowRequestWithValidJwt() throws Exception {
+        when(service.findAll(
+                42L,
+                null,
+                null,
+                "date_applied",
+                "desc",
+                10,
+                0
+        )).thenReturn(List.<JobApplicationResponse>of());
+
+        mockMvc.perform(get("/applications")
+                        .with(jwt().jwt(token -> token
+                                .subject("person@example.com")
+                                .claim("userId", 42L)
+                        )))
                 .andExpect(status().isOk());
+
+        verify(service).findAll(
+                42L,
+                null,
+                null,
+                "date_applied",
+                "desc",
+                10,
+                0
+        );
 
     }
 
