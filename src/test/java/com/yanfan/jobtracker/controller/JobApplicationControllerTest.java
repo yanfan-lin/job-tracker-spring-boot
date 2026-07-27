@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -18,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -130,9 +133,21 @@ class JobApplicationControllerTest {
                 LocalDateTime.of(2026, 7, 6, 10, 0)
         );
 
-        when(service.create(any(JobApplicationRequest.class))).thenReturn(response);
+        when(service.create(
+                eq(42L),
+                any(JobApplicationRequest.class)
+        )).thenReturn(response);
+
+        Jwt jwt = Jwt.withTokenValue("test-token")
+                .header("alg", "HS256")
+                .subject("person@example.com")
+                .claim("userId", 42L)
+                .build();
+
+        JwtAuthenticationToken authentication = new JwtAuthenticationToken(jwt);
 
         mockMvc.perform(post("/applications")
+                        .principal(authentication)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isCreated())

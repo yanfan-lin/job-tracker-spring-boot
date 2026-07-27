@@ -4,10 +4,13 @@ import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
 import com.yanfan.jobtracker.dto.JobApplicationRequest;
 import com.yanfan.jobtracker.dto.JobApplicationResponse;
 import com.yanfan.jobtracker.exception.ResourceNotFoundException;
+import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.model.JobApplication;
+import com.yanfan.jobtracker.repository.AppUserRepository;
 import com.yanfan.jobtracker.repository.JobApplicationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -32,10 +35,14 @@ class JobApplicationServiceTest {
     @Mock
     private JobApplicationRepository repository;
 
+    @Mock
+    private AppUserRepository appUserRepository;
+
     @InjectMocks
     private JobApplicationService service;
 
-    // test for create job application
+    // test for create job application and whether it is saved with
+    // the corresponding user
     @Test
     void create_shouldSaveApplicationAndReturnResponse() {
         JobApplicationRequest request = new JobApplicationRequest(
@@ -46,11 +53,19 @@ class JobApplicationServiceTest {
                 "Applied through LinkedIn"
         );
 
+        AppUser user = new AppUser(
+                "person@example.com",
+                "hashed-password"
+        );
+
+        when(appUserRepository.findById(42L))
+                .thenReturn(Optional.of(user));
+
         // return the same entity passed into repository.save()
         when(repository.save(any(JobApplication.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        JobApplicationResponse response = service.create(request);
+        JobApplicationResponse response = service.create(42L, request);
 
         assertThat(response.getCompany()).isEqualTo("Amazon");
         assertThat(response.getTitle()).isEqualTo("Backend Developer");
@@ -58,7 +73,41 @@ class JobApplicationServiceTest {
         assertThat(response.getDateApplied()).isEqualTo(LocalDate.of(2026, 7, 6));
         assertThat(response.getNotes()).isEqualTo("Applied through LinkedIn");
 
-        verify(repository).save(any(JobApplication.class));
+        ArgumentCaptor<JobApplication> applicationCaptor = ArgumentCaptor.forClass(JobApplication.class);
+
+        verify(repository).save(applicationCaptor.capture());
+
+        JobApplication savedApplication = applicationCaptor.getValue();
+
+        assertThat(savedApplication.getUser()).isSameAs(user);
+
+        verify(appUserRepository).findById(42L);
+
+    }
+
+    // Test creation when the JWT user no longer exists
+    @Test
+    void create_shouldThrowExceptionWhenUserDoesNotExist() {
+        JobApplicationRequest request = new JobApplicationRequest(
+                "Amazon",
+                "Backend Developer",
+                "applied",
+                LocalDate.of(2026, 7, 6),
+                "Applied through LinkedIn"
+        );
+
+        when(appUserRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.create(999L, request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User not found with id: 999");
+
+        verify(appUserRepository).findById(999L);
+
+        // the application should not be saved without a valid owner
+        verify(repository, never())
+                .save(any(JobApplication.class));
 
     }
 

@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -55,11 +56,17 @@ public class JobApplicationController {
     // request body validation handled by @Valid and the DTO validation
     @PostMapping
     public ResponseEntity<JobApplicationResponse> create(
+            JwtAuthenticationToken authentication,
             @Valid @RequestBody JobApplicationRequest request
     ) {
-        JobApplicationResponse theApplication = service.create(request);
+        Number userIdClaim = authentication.getToken().getClaim("userId");
+
+        Long userId = userIdClaim.longValue();
+
+        JobApplicationResponse theApplication = service.create(userId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(theApplication);
+
     }
 
     // PATCH /applications/{id}

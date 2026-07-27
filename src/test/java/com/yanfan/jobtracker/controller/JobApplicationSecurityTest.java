@@ -118,8 +118,9 @@ class JobApplicationSecurityTest {
                 LocalDateTime.of(2026, 7, 6, 10, 0)
         );
 
-        when(service.create(any(JobApplicationRequest.class)))
-                .thenReturn(response);
+        when(service.create(
+                eq(42L),
+                any(JobApplicationRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/applications")
                         .with(jwt().jwt(token -> token

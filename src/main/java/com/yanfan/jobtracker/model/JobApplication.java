@@ -15,6 +15,15 @@ public class JobApplication {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // The user who owns this job application
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(
+            name = "user_id",
+            nullable = true,
+            foreignKey = @ForeignKey(name = "fk_job_applications_user")
+    )
+    private AppUser user;
+
     // Basic job application fields.
     // Required fields are marked nullable = false at the database level.
     @Column(nullable = false)
@@ -71,6 +80,10 @@ public class JobApplication {
         return id;
     }
 
+    public AppUser getUser() {
+        return user;
+    }
+
     public String getCompany() {
         return company;
     }
@@ -117,6 +130,15 @@ public class JobApplication {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    // assigns this application to its owner
+    public void assignToUser(AppUser user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User is required");
+        }
+
+        this.user = user;
     }
 
 

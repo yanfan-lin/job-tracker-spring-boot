@@ -1,18 +1,20 @@
 package com.yanfan.jobtracker.service;
 
+import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
 import com.yanfan.jobtracker.dto.JobApplicationRequest;
 import com.yanfan.jobtracker.dto.JobApplicationResponse;
-import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
 import com.yanfan.jobtracker.exception.ResourceNotFoundException;
+import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.model.JobApplication;
+import com.yanfan.jobtracker.repository.AppUserRepository;
 import com.yanfan.jobtracker.repository.JobApplicationRepository;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -22,15 +24,25 @@ public class JobApplicationService {
 
     private final JobApplicationRepository repository;
 
+    private final AppUserRepository appUserRepository;
+
     // constructor injection
     @Autowired
-    public JobApplicationService(JobApplicationRepository repository) {
+    public JobApplicationService(JobApplicationRepository repository, AppUserRepository appUserRepository) {
         this.repository = repository;
+        this.appUserRepository = appUserRepository;
     }
 
     // create a new job application record
     @Transactional
-    public JobApplicationResponse create(JobApplicationRequest request) {
+    public JobApplicationResponse create(
+            Long userId,
+            JobApplicationRequest request
+    ) {
+        AppUser user = appUserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User not found with id: " + userId
+                ));
 
         JobApplication application = new JobApplication(
                 request.getCompany(),
@@ -40,9 +52,12 @@ public class JobApplicationService {
                 request.getNotes()
         );
 
-        JobApplication theApplication = repository.save(application);
+        application.assignToUser(user);
 
-        return mapToResponse(theApplication);
+        JobApplication savedApplication = repository.save(application);
+
+        return mapToResponse(savedApplication);
+
 
     }
 
