@@ -4,11 +4,12 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
+// Map registered users to the app_users table
 @Entity
 @Table(
         name = "app_users",
         uniqueConstraints = {
-                // ensure one Email address can only be used by one user
+                // Keep each email address unique at the database level
                 @UniqueConstraint(name = "uk_app_users_email", columnNames = "email")
         }
 )
@@ -20,7 +21,7 @@ public class AppUser {
     @Column(nullable = false, length = 254)
     private String email;
 
-    // hashed password
+    // Store only the BCrypt password hash
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
@@ -40,7 +41,7 @@ public class AppUser {
         this.passwordHash = passwordHash;
     }
 
-    // runs before the user is inserted into the database
+    // Set both timestamps before inserting a new user
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -48,7 +49,7 @@ public class AppUser {
         this.updatedAt = now;
     }
 
-    // runs before the user is updated in the database
+    // Refresh the update timestamp before saving changes
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();

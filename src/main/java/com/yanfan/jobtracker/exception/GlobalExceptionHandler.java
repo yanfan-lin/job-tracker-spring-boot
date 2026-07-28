@@ -11,11 +11,11 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-// a global exception handler for REST API errors
+// Handle application errors and return consistent API responses
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // handles database records not found
+    // Return 404 when a requested record cannot be found
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException e) {
         Map<String, Object> error = buildErrorResponse(
@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
 
     }
 
-    // handles registration attempts using an existing email address
+    // Return 409 when an email address is already registered
     @ExceptionHandler(DuplicateEmailException.class)
     public ResponseEntity<Map<String, Object>> handleDuplicateEmail(DuplicateEmailException e) {
         Map<String, Object> error = buildErrorResponse(
@@ -38,9 +38,10 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+
     }
 
-    // handles incorrect login credentials
+    // Return 401 when login credentials are invalid
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidCredentials(InvalidCredentialsException e) {
         Map<String, Object> error = buildErrorResponse(
@@ -50,9 +51,10 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+
     }
 
-    // handles invalid query parameters, such as invalid sort_by, order, limit, or offset
+    // Return 400 for invalid sorting or pagination parameters
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException e) {
         Map<String, Object> error = buildErrorResponse(
@@ -62,9 +64,10 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+
     }
 
-    // handles @Valid request body validation errors from DTO classes
+    // Collect DTO validation errors by field
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationErrors(MethodArgumentNotValidException e) {
         Map<String, String> fieldErrors = new HashMap<>();
@@ -82,9 +85,10 @@ public class GlobalExceptionHandler {
         response.put("fieldErrors", fieldErrors);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
     }
 
-    // handles malformed JSON requests
+    // Return 400 when the request body contains malformed JSON
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleMalformedJson(HttpMessageNotReadableException e) {
         Map<String, Object> error = buildErrorResponse(
@@ -94,9 +98,10 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+
     }
 
-    // helper to keep all error response in the same shape
+    // Build a consistent structure for application error responses
     private Map<String, Object> buildErrorResponse(int status, String error, String message) {
         Map<String, Object> response = new HashMap<>();
 
@@ -106,6 +111,8 @@ public class GlobalExceptionHandler {
         response.put("message", message);
 
         return response;
+
     }
+
 
 }

@@ -12,32 +12,32 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 
-// security configuration for REST APIs
+// Configure stateless JWT security for the REST API
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // defines public endpoints and JWT-protected endpoints
+    // Define public routes and enable JWT bearer authentication
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
 
-                // JWT authentication does not use browser form sessions
+                // CSRF is disabled because JWTs are sent in the Authorization header, not cookies
                 .csrf(csrf -> csrf.disable())
 
-                // each request will carry its own JWT
+                // Do not create server-side sessions; each request must include its own JWT
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        // user registration and login are public
+                        // User registration and login are public
                         .requestMatchers(HttpMethod.POST,
                                 "/auth/register",
                                 "/auth/login"
                         ).permitAll()
 
-                        // all job application endpoints require JWT
+                        // All job application endpoints require authentication
                         .requestMatchers(
                                 "/applications",
                                 "/applications/**"
@@ -46,7 +46,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // Reads and validates Authorization: Bearer <JWT>
+                // Read and validate bearer tokens from the Authorization header
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(Customizer.withDefaults())
                 );
@@ -55,7 +55,7 @@ public class SecurityConfig {
 
     }
 
-    // use BCrypt to encrypt the password
+    // Use BCrypt to hash and verify passwords
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

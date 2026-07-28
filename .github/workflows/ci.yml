@@ -1,4 +1,4 @@
-# Runs automated tests for the Spring Boot API on pushes and pull requests
+# Run automated tests on pushes and pull requests
 name: Java CI
 
 on:
@@ -12,17 +12,14 @@ jobs:
     name: Run Maven tests
     runs-on: ubuntu-latest
 
-    # fixed test-only key, DO NOT use it in a real deployment
-    # it decodes to 32 bytes, meeting the HS256 requirement
+    # Use a fixed test-only key that decodes to 32 bytes for HS256
     env:
       JWT_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
 
     steps:
-      # download the repository files into the runner
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # installs Java 21 and caches downloaded Maven dependencies
       - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
@@ -30,10 +27,8 @@ jobs:
           java-version: "21"
           cache: maven
 
-      # gives the Maven wrapper permission to execute on Linux runners
       - name: Make Maven wrapper executable
         run: chmod +x mvnw
 
-      # compile the project and run the complete automated tests
       - name: Run tests
         run: ./mvnw test

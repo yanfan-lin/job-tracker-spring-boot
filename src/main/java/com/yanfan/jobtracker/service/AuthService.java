@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
 
-// service layer for user registration and authentication logic
+// Handle user registration and login logic
 @Service
 public class AuthService {
 
@@ -28,7 +28,7 @@ public class AuthService {
             "Invalid email or password";
 
 
-    // constructor injection
+    // Constructor injection
     @Autowired
     public AuthService(AppUserRepository appUserRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.appUserRepository = appUserRepository;
@@ -36,18 +36,18 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
-    // register a new user with normalized email and BCrypt password hash
+    // Register a new user with a normalized email and BCrypt password hash
     @Transactional
     public AppUserResponse register(RegisterRequest request) {
 
         String normalizedEmail = normalizeEmail(request.getEmail());
 
-        // reject the registration if the email already exists
+        // Reject registration when the normalized email already exists
         if (appUserRepository.existsByEmail(normalizedEmail)) {
             throw new DuplicateEmailException("Email is already registered");
         }
 
-        // encode raw password
+        // Hash the raw password before storing it
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
         AppUser theUser = new AppUser(normalizedEmail, encodedPassword);
@@ -58,23 +58,24 @@ public class AuthService {
             return mapToResponse(savedUser);
 
         } catch (DataIntegrityViolationException e) {
+            // Handle duplicate emails that reach the database after the first check
             throw new DuplicateEmailException("Email is already registered");
         }
 
     }
 
-    // authenticates the user and returns a signed JWT access token
+    // Authenticate the user and return a signed JWT access token
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
 
         String normalizedEmail = normalizeEmail(request.getEmail());
 
-        // find the account
+        // Find the account by its normalized email
         AppUser user = appUserRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() ->
                         new InvalidCredentialsException(INVALID_CREDENTIALS_MESSAGE));
 
-        // compare submitted password with stored password
+        // Compare the submitted password with the stored BCrypt hash
         boolean passwordMatches = passwordEncoder.matches(
                 request.getPassword(),
                 user.getPasswordHash()
@@ -84,7 +85,7 @@ public class AuthService {
             throw new InvalidCredentialsException(INVALID_CREDENTIALS_MESSAGE);
         }
 
-        // generate JWT
+        // Generate a signed JWT after the credentials are verified
         String accessToken = jwtService.generateToken(user);
 
         return new LoginResponse(
@@ -95,7 +96,7 @@ public class AuthService {
 
     }
 
-    // convert the entity into a safe response without the password hash
+    // Map the entity to a response without exposing the password hash
     private AppUserResponse mapToResponse(AppUser user) {
 
         return new AppUserResponse(
@@ -103,8 +104,10 @@ public class AuthService {
                 user.getEmail(),
                 user.getCreatedAt()
         );
+
     }
 
+    // Trim and lowercase emails so registration and login use the same format
     private String normalizeEmail(String email) {
 
         return email.trim().toLowerCase(Locale.ROOT);

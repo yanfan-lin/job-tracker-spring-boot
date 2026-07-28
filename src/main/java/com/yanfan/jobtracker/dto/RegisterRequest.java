@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-// request DTO for registering a user
+// Accept and validate registration data
 public class RegisterRequest {
 
     @NotBlank(message = "Email is required")
@@ -16,7 +16,7 @@ public class RegisterRequest {
     @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
 
-    // required by Jackson so Spring can convert JSON into this DTO
+    // Allow Jackson to convert JSON into this DTO
     public RegisterRequest() {
 
     }
@@ -30,8 +30,11 @@ public class RegisterRequest {
         return email;
     }
 
+    // Trim surrounding spaces before validation and normalization
     public void setEmail(String email) {
+
         this.email = email == null ? null : email.trim();
+
     }
 
     public String getPassword() {

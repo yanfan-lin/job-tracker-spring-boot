@@ -5,13 +5,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-// database access layer for AppUser
+// Provide database access for registered users
 public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
-    // finds a registered user by email address if exists
+    // Find a registered user by normalized email
     Optional<AppUser> findByEmail(String email);
 
-    // verifies whether an email address is already registered
+    // Check whether an email address is already registered
     boolean existsByEmail(String email);
 
 }

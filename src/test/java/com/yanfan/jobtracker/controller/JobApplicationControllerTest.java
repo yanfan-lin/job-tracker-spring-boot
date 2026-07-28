@@ -27,10 +27,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-// controller tests for JobApplicationController
-// The service is mocked so that tests focus on
-// HTTP status codes and JSON responses
+// Test JobApplicationController HTTP behavior with a mocked service
 @WebMvcTest(JobApplicationController.class)
+
+// Disable security filters so tests focus on validation and responses
 @AutoConfigureMockMvc(addFilters = false)
 class JobApplicationControllerTest {
 
@@ -40,7 +40,7 @@ class JobApplicationControllerTest {
     @MockitoBean
     private JobApplicationService service;
 
-    // verifies that GET /applications returns 200 ok
+    // Verify listing applications returns 200 OK
     @Test
     void findAll_shouldReturnApplications() throws Exception {
         JobApplicationResponse response = new JobApplicationResponse(
@@ -78,7 +78,7 @@ class JobApplicationControllerTest {
 
     }
 
-    // verifies that GET /applications/{id} returns 200 ok
+    // Verify finding an existing application returns 200 OK
     @Test
     void findById_shouldReturnApplicationWhenFound() throws Exception {
         JobApplicationResponse response = new JobApplicationResponse(
@@ -104,9 +104,10 @@ class JobApplicationControllerTest {
                 .andExpect(jsonPath("$.status").value("applied"))
                 .andExpect(jsonPath("$.dateApplied").value("2026-07-06"))
                 .andExpect(jsonPath("$.notes").value("Applied through LinkedIn"));
+
     }
 
-    // verifies that GET /applications/{id} returns 404 not found
+    // Verify a missing application returns 404 Not Found
     @Test
     void findById_shouldReturnNotFoundWhenApplicationDoesNotExist() throws Exception {
         when(service.findById(42L, 999L))
@@ -118,9 +119,10 @@ class JobApplicationControllerTest {
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.message").value("Job application not found with id: 999"));
+
     }
 
-    // verifies that POST /applications returns 201 created
+    // Verify creating a valid application returns 201 Created
     @Test
     void create_shouldReturnCreatedApplication() throws Exception {
         String request = """
@@ -160,10 +162,10 @@ class JobApplicationControllerTest {
                 .andExpect(jsonPath("$.status").value("applied"))
                 .andExpect(jsonPath("$.dateApplied").value("2026-07-06"))
                 .andExpect(jsonPath("$.notes").value("Applied through LinkedIn"));
+
     }
 
-    // verifies that POST /applications returns 400 bad request
-    // when required fields are blank or invalid
+    // Verify invalid creation data returns 400 Bad Request
     @Test
     void create_shouldReturnBadRequestWhenRequestBodyIsInvalid() throws Exception {
         String request = """
@@ -187,10 +189,10 @@ class JobApplicationControllerTest {
                 .andExpect(jsonPath("$.fieldErrors.title").exists())
                 .andExpect(jsonPath("$.fieldErrors.status").exists())
                 .andExpect(jsonPath("$.fieldErrors.dateApplied").exists());
+
     }
 
-    // verifies that POST /applications returns 400 bad request
-    // when the request body is malformed
+    // Verify malformed creation JSON returns 400 Bad Request
     @Test
     void create_shouldReturnBadRequestWhenJsonIsMalformed() throws Exception {
         String request = """
@@ -209,9 +211,10 @@ class JobApplicationControllerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("Malformed JSON request body"));
+
     }
 
-    // verifies that PATCH /applications/{id} returns 200 ok
+    // Verify a valid partial update returns 200 OK
     @Test
     void patch_shouldReturnUpdatedApplication() throws Exception {
         String request = """
@@ -249,9 +252,10 @@ class JobApplicationControllerTest {
                 .andExpect(jsonPath("$.status").value("interview"))
                 .andExpect(jsonPath("$.dateApplied").value("2026-07-06"))
                 .andExpect(jsonPath("$.notes").value("Recruiter screen scheduled"));
+
     }
 
-    // verifies that PATCH /applications/{id} returns 400 bad request
+    // Verify an invalid status update returns 400 Bad Request
     @Test
     void patch_shouldReturnBadRequestWhenRequestBodyIsInvalid() throws Exception {
         String request = """
@@ -268,9 +272,10 @@ class JobApplicationControllerTest {
                 .andExpect(jsonPath("$.error").value("Validation Error"))
                 .andExpect(jsonPath("$.message").value("Request body validation failed"))
                 .andExpect(jsonPath("$.fieldErrors.status").exists());
+
     }
 
-    // verifies that DELETE /applications/{id} returns 204 no content
+    // Verify deleting an existing application returns 204 No Content
     @Test
     void delete_shouldReturnNoContent() throws Exception {
         mockMvc.perform(delete("/applications/1")
@@ -281,7 +286,7 @@ class JobApplicationControllerTest {
 
     }
 
-    // verifies that DELETE /applications/{id} returns 404 not found
+    // Verify deleting a missing application returns 404 Not Found
     @Test
     void delete_shouldReturnNotFoundWhenApplicationDoesNotExist() throws Exception {
         doThrow(new ResourceNotFoundException("Job application not found with id: 999"))
@@ -293,9 +298,10 @@ class JobApplicationControllerTest {
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.message").value("Job application not found with id: 999"));
+
     }
 
-    // helper for the JWT generation and authentication
+    // Create JWT authentication with the expected userId claim
     private JwtAuthenticationToken createAuthentication() {
         Jwt jwt = Jwt.withTokenValue("test-token")
                 .header("alg", "HS256")

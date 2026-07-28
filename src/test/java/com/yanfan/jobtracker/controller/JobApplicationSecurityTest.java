@@ -10,10 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.BadJwtException;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.BadJwtException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,8 +27,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-// security test for JobApplicationController
+// Test authentication requirements for job application endpoints
 @WebMvcTest(JobApplicationController.class)
+
+// Load the real security rules for these endpoint tests
 @Import(SecurityConfig.class)
 class JobApplicationSecurityTest {
 
@@ -38,11 +40,12 @@ class JobApplicationSecurityTest {
     @MockitoBean
     private JobApplicationService service;
 
+    // Provide a mocked decoder so SecurityConfig can load in this MVC test
     @MockitoBean
     private JwtDecoder jwtDecoder;
 
 
-    // verifies that application data cannot be accessed without authentication
+    // Verify application data cannot be accessed without authentication
     @Test
     void getApplications_shouldRequireAuthentication() throws Exception {
         mockMvc.perform(get("/applications"))
@@ -52,7 +55,7 @@ class JobApplicationSecurityTest {
 
     }
 
-    // verifies that a valid JWT can read the authenticated user's applications
+    // Verify a valid JWT can read the authenticated user's applications
     @Test
     void getApplications_shouldAllowRequestWithValidJwt() throws Exception {
 
@@ -85,7 +88,7 @@ class JobApplicationSecurityTest {
 
     }
 
-    // verifies that POST /applications requires authentication
+    // Verify creating an application requires authentication
     @Test
     void create_shouldRequireAuthentication() throws Exception {
 
@@ -106,7 +109,80 @@ class JobApplicationSecurityTest {
 
     }
 
-    // verifies that PATCH /applications/{id} requires authentication
+    // Verify a valid JWT can create an application
+    @Test
+    void create_shouldAllowRequestWithValidJwt() throws Exception {
+        String request = """
+                        {
+                          "company": "Microsoft",
+                          "title": "Software Engineer",
+                          "status": "applied",
+                          "dateApplied": "2026-07-06",
+                          "notes": "Applied through LinkedIn"
+                        }
+                """;
+
+        JobApplicationResponse response = new JobApplicationResponse(
+                1L,
+                "Microsoft",
+                "Software Engineer",
+                "applied",
+                LocalDate.of(2026, 7, 6),
+                "Applied through LinkedIn",
+                LocalDateTime.of(2026, 7, 6, 10, 0),
+                LocalDateTime.of(2026, 7, 6, 10, 0)
+        );
+
+        when(service.create(
+                eq(42L),
+                any(JobApplicationRequest.class))).thenReturn(response);
+
+        mockMvc.perform(post("/applications")
+                        .with(jwt().jwt(token -> token
+                                .subject("person@example.com")
+                                .claim("userId", 42L)
+                        ))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.company").value("Microsoft"))
+                .andExpect(jsonPath("$.title")
+                        .value("Software Engineer"));
+
+    }
+
+    // Verify an invalid JWT is rejected before the controller runs
+    @Test
+    void create_shouldRejectInvalidJwt() throws Exception {
+        String request = """
+                {
+                  "company": "Microsoft",
+                  "title": "Software Engineer",
+                  "status": "applied",
+                  "dateApplied": "2026-07-06",
+                  "notes": "Applied through LinkedIn"
+                }
+                """;
+
+        when(jwtDecoder.decode("invalid-token"))
+                .thenThrow(new BadJwtException("Invalid JWT"));
+
+        mockMvc.perform(post("/applications")
+                        .header(
+                                "Authorization",
+                                "Bearer invalid-token"
+                        )
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isUnauthorized());
+
+        // Stop before calling the service when JWT verification fails
+        verifyNoInteractions(service);
+
+    }
+
+    // Verify updating an application requires authentication
     @Test
     void patch_shouldRequireAuthentication() throws Exception {
 
@@ -120,9 +196,10 @@ class JobApplicationSecurityTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isUnauthorized());
+
     }
 
-    // verifies that a valid JWT can update the user's application
+    // Verify a valid JWT can update the user's application
     @Test
     void patch_shouldAllowRequestWithValidJwt() throws Exception {
 
@@ -169,14 +246,15 @@ class JobApplicationSecurityTest {
 
     }
 
-    // verifies that DELETE /applications/{id} requires authentication
+    // Verify deleting an application requires authentication
     @Test
     void delete_shouldRequireAuthentication() throws Exception {
         this.mockMvc.perform(delete("/applications/1"))
                 .andExpect(status().isUnauthorized());
+
     }
 
-    // verifies that a valid JWT can delete the user's application
+    // Verify a valid JWT can delete the user's application
     @Test
     void delete_shouldAllowRequestWithValidJwt() throws Exception {
         this.mockMvc.perform(delete("/applications/1")
@@ -187,79 +265,6 @@ class JobApplicationSecurityTest {
                 .andExpect(status().isNoContent());
 
         verify(service).delete(42L, 1L);
-
-    }
-
-    // verifies that a valid JWT allows access to a protected endpoint
-    @Test
-    void create_shouldAllowRequestWithValidJwt() throws Exception {
-        String request = """
-                        {
-                          "company": "Microsoft",
-                          "title": "Software Engineer",
-                          "status": "applied",
-                          "dateApplied": "2026-07-06",
-                          "notes": "Applied through LinkedIn"
-                        }
-                """;
-
-        JobApplicationResponse response = new JobApplicationResponse(
-                1L,
-                "Microsoft",
-                "Software Engineer",
-                "applied",
-                LocalDate.of(2026, 7, 6),
-                "Applied through LinkedIn",
-                LocalDateTime.of(2026, 7, 6, 10, 0),
-                LocalDateTime.of(2026, 7, 6, 10, 0)
-        );
-
-        when(service.create(
-                eq(42L),
-                any(JobApplicationRequest.class))).thenReturn(response);
-
-        mockMvc.perform(post("/applications")
-                        .with(jwt().jwt(token -> token
-                                .subject("person@example.com")
-                                .claim("userId", 42L)
-                        ))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(request))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.company").value("Microsoft"))
-                .andExpect(jsonPath("$.title")
-                        .value("Software Engineer"));
-
-    }
-
-    // verifies that an invalid JWT is rejected before the controller runs
-    @Test
-    void create_shouldRejectInvalidJwt() throws Exception {
-        String request = """
-                {
-                  "company": "Microsoft",
-                  "title": "Software Engineer",
-                  "status": "applied",
-                  "dateApplied": "2026-07-06",
-                  "notes": "Applied through LinkedIn"
-                }
-                """;
-
-        when(jwtDecoder.decode("invalid-token"))
-                .thenThrow(new BadJwtException("Invalid JWT"));
-
-        mockMvc.perform(post("/applications")
-                        .header(
-                                "Authorization",
-                                "Bearer invalid-token"
-                        )
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(request))
-                .andExpect(status().isUnauthorized());
-
-        // JWT verification fails before reaching a controller
-        verifyNoInteractions(service);
 
     }
 

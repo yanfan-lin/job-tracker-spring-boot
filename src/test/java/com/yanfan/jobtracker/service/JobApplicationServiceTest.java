@@ -27,8 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 
-// unit tests for JobApplicationService
-// repository is mocked, so a real database is not needed
+// Test JobApplicationService with mocked repositories and no real database
 @ExtendWith(MockitoExtension.class)
 class JobApplicationServiceTest {
 
@@ -41,8 +40,7 @@ class JobApplicationServiceTest {
     @InjectMocks
     private JobApplicationService service;
 
-    // test for create job application and whether it is saved with
-    // the corresponding user
+    // Verify creation assigns the authenticated user as the owner
     @Test
     void create_shouldSaveApplicationAndReturnResponse() {
         JobApplicationRequest request = new JobApplicationRequest(
@@ -61,7 +59,7 @@ class JobApplicationServiceTest {
         when(appUserRepository.findById(42L))
                 .thenReturn(Optional.of(user));
 
-        // return the same entity passed into repository.save()
+        // Return the saved entity from the mocked repository
         when(repository.save(any(JobApplication.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -85,7 +83,7 @@ class JobApplicationServiceTest {
 
     }
 
-    // Test creation when the JWT user no longer exists
+    // Verify creation fails when the JWT user no longer exists
     @Test
     void create_shouldThrowExceptionWhenUserDoesNotExist() {
         JobApplicationRequest request = new JobApplicationRequest(
@@ -105,13 +103,13 @@ class JobApplicationServiceTest {
 
         verify(appUserRepository).findById(999L);
 
-        // the application should not be saved without a valid owner
+        // Do not save an application without a valid owner
         verify(repository, never())
                 .save(any(JobApplication.class));
 
     }
 
-    // test for findById() when found
+    // Verify an owned application is returned when found
     @Test
     void findById_shouldReturnApplicationWhenFound() {
         JobApplication theApplication = new JobApplication(
@@ -137,7 +135,7 @@ class JobApplicationServiceTest {
 
     }
 
-    // test for findById() when application not found
+    // Verify a missing or unowned application returns the same not-found error
     @Test
     void findById_shouldThrowExceptionWhenNotFound() {
         when(repository.findByIdAndUserId(999L, 42L))
@@ -151,7 +149,7 @@ class JobApplicationServiceTest {
 
     }
 
-    // test for patch() when application exists
+    // Verify only the provided application fields are updated
     @Test
     void patch_shouldPatchApplicationAndReturnResponse() {
         JobApplication savedApplication = new JobApplication(
@@ -191,7 +189,7 @@ class JobApplicationServiceTest {
 
     }
 
-    // test for patch() when application does not exist
+    // Verify updating a missing or unowned application fails
     @Test
     void patch_shouldThrowExceptionWhenNotFound() {
         JobApplicationPatchRequest request = new JobApplicationPatchRequest(
@@ -216,7 +214,7 @@ class JobApplicationServiceTest {
 
     }
 
-    // test deleting an application owned by the authenticated user
+    // Verify deleting an owned application succeeds
     @Test
     void delete_shouldDeleteApplicationWhenFound() {
         JobApplication application = new JobApplication(
@@ -237,7 +235,7 @@ class JobApplicationServiceTest {
 
     }
 
-    // test deleting an application that does not belong to the user
+    // Verify deleting a missing or unowned application fails
     @Test
     void delete_shouldThrowExceptionWhenNotFound() {
         when(repository.findByIdAndUserId(999L, 42L))
@@ -256,7 +254,7 @@ class JobApplicationServiceTest {
 
     }
 
-    // test for findAll() with filters and pagination
+    // Verify filtering, sorting, and pagination are passed to the repository
     @Test
     void findAll_shouldReturnApplicationsWithFilters() {
         JobApplication application = new JobApplication(
@@ -300,7 +298,7 @@ class JobApplicationServiceTest {
 
     }
 
-    // test for findAll() when limit is invalid
+    // Verify a non-positive limit is rejected
     @Test
     void findAll_shouldThrowExceptionWhenLimitIsInvalid() {
         assertThatThrownBy(() -> service.findAll(
@@ -314,9 +312,10 @@ class JobApplicationServiceTest {
         ))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("limit must be greater than 0");
+
     }
 
-    // test for findAll() when page is invalid
+    // Verify a negative page number is rejected
     @Test
     void findAll_shouldThrowExceptionWhenPageIsInvalid() {
         assertThatThrownBy(() -> service.findAll(
@@ -330,9 +329,10 @@ class JobApplicationServiceTest {
         ))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("page cannot be negative");
+
     }
 
-    // test for findAll() when sort_by is invalid
+    // Verify an unsupported sort field is rejected
     @Test
     void findAll_shouldThrowExceptionWhenSortByIsInvalid() {
         assertThatThrownBy(() -> service.findAll(
@@ -346,9 +346,10 @@ class JobApplicationServiceTest {
         ))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("sort_by must be one of: id, company, title, status, date_applied, created_at, updated_at");
+
     }
 
-    // test for findAll() when order is invalid
+    // Verify an unsupported sort direction is rejected
     @Test
     void findAll_shouldThrowExceptionWhenOrderIsInvalid() {
         assertThatThrownBy(() -> service.findAll(
@@ -362,6 +363,7 @@ class JobApplicationServiceTest {
         ))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("order must be either asc or desc");
+
     }
 
 

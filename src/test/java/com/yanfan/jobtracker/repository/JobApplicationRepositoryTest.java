@@ -14,7 +14,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-// tests the JPA mappings and ownership-scoped repository queries
+// Test JPA mappings and ownership-scoped repository queries
 @DataJpaTest(showSql = false)
 class JobApplicationRepositoryTest {
 
@@ -24,7 +24,8 @@ class JobApplicationRepositoryTest {
     @Autowired
     private JobApplicationRepository jobApplicationRepository;
 
-    // a user must not retrieve another user's application by its database ID
+
+    // Verify one user cannot retrieve another user's application by ID
     @Test
     void findByIdAndUserId_shouldNotReturnAnotherUsersApplication() {
 
@@ -56,7 +57,7 @@ class JobApplicationRepositoryTest {
 
     }
 
-    // queries must apply both filtering and user ownership
+    // Verify queries apply both filters and user ownership
     @Test
     void findWithFiltersForUser_shouldReturnOnlyMatchingOwnedApplications() {
 
@@ -64,7 +65,7 @@ class JobApplicationRepositoryTest {
 
         AppUser secondUser = saveUser("second@example.com");
 
-        // matches the requested status and search for the firstUser
+        // Match the requested status and search for the first user
         saveApplication(
                 firstUser,
                 "Amazon",
@@ -72,7 +73,7 @@ class JobApplicationRepositoryTest {
                 "applied"
         );
 
-        // belongs to the firstUser but does not match the status filter
+        // Belong to the first user but fail the status filter
         saveApplication(
                 firstUser,
                 "Shopify",
@@ -80,7 +81,7 @@ class JobApplicationRepositoryTest {
                 "rejected"
         );
 
-        // matches the filters but belongs to the secondUser
+        // Match the filters but belong to the second user
         saveApplication(
                 secondUser,
                 "Microsoft",
@@ -105,7 +106,7 @@ class JobApplicationRepositoryTest {
 
     }
 
-    // saves a user so the database generates a real user ID
+    // Save a user so the database generates a real user ID
     private AppUser saveUser(String email) {
         AppUser appUser = new AppUser(
                 email,
@@ -116,7 +117,7 @@ class JobApplicationRepositoryTest {
 
     }
 
-    // saves an application with a foreign key relationship
+    // Save an application with a real foreign-key relationship
     private JobApplication saveApplication(
             AppUser owner,
             String company,

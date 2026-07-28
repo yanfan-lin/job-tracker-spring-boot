@@ -11,11 +11,11 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
 
-// JWT signing and verification configuration
+// Configure JWT signing and validation
 @Configuration
 public class JwtConfig {
 
-    // converts the Base64 environment variable into an HS256 secret key
+    // Convert the Base64 environment variable into an HS256 secret key
     @Bean
     public SecretKey jwtSecretKey(
             @Value("${app.jwt.secret}") String encodedSecret
@@ -31,7 +31,7 @@ public class JwtConfig {
         return new SecretKeySpec(keyBytes, "HmacSHA256");
     }
 
-    // signs JWT access tokens created during login
+    // Sign JWT access tokens created during login
     @Bean
     public JwtEncoder jwtEncoder(SecretKey jwtSecretKey) {
         return NimbusJwtEncoder
@@ -40,21 +40,22 @@ public class JwtConfig {
                 .build();
     }
 
-    // verifies JWT signatures, timestamps, and required claims
+    // Verify JWT signatures, timestamps, and required claims
     @Bean
     public JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
 
-        // verify that the JWT was signed with secret key
+        // Use the same HS256 secret key to verify incoming tokens
         NimbusJwtDecoder decoder = NimbusJwtDecoder
                 .withSecretKey(jwtSecretKey)
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
 
-        // verify that every JWT contains a valid userId claim
+        // Require every JWT to contain a positive numeric userId claim
         OAuth2TokenValidator<Jwt> userIdValidator = jwt -> {
             Object userIdClaim = jwt.getClaim("userId");
 
-            // reject tokens when userId is missing, non-numeric, or <= 0
+            // Reject tokens when userId is missing, non-numeric,
+            // or less than or equal to 0
             if (!(userIdClaim instanceof Number userId) || userId.longValue() <= 0) {
                 OAuth2Error error = new OAuth2Error(
                         OAuth2ErrorCodes.INVALID_TOKEN,
@@ -65,10 +66,10 @@ public class JwtConfig {
                 return OAuth2TokenValidatorResult.failure(error);
             }
 
-            // userId validation passed
             return OAuth2TokenValidatorResult.success();
         };
 
+        // Keep default timestamp checks and add the custom userId check
         decoder.setJwtValidator(
                 new DelegatingOAuth2TokenValidator<>(
                         JwtValidators.createDefault(),
@@ -77,6 +78,7 @@ public class JwtConfig {
         );
 
         return decoder;
+
     }
 
 

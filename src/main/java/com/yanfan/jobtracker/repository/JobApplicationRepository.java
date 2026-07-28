@@ -9,10 +9,10 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
-// JobApplication database access layer
+// Provide database access for job applications
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long> {
 
-    // finds the authenticated user's applications with optional filters
+    // Return the user's applications with optional status and text filters
     @Query("""
             SELECT j FROM JobApplication j 
             WHERE j.user.id = :userId
@@ -27,9 +27,10 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
             @Param("status") String status,
             @Param("search") String search,
             Pageable pageable
+
     );
 
-    // finds one application that belongs to the specified user
+    // Find one application only when both the application ID and user ID match
     @Query("""
             SELECT j FROM JobApplication j
             WHERE j.id = :id
@@ -38,6 +39,7 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     Optional<JobApplication> findByIdAndUserId(
             @Param("id") Long id,
             @Param("userId") Long userId
+
     );
 
 

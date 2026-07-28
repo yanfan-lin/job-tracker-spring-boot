@@ -12,7 +12,7 @@ import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-// test the real JWT validation rules
+// Test the real JWT validation rules
 class JwtConfigTest {
 
     private JwtEncoder jwtEncoder;
@@ -21,7 +21,7 @@ class JwtConfigTest {
 
     @BeforeEach
     void setUp() {
-        // fixed secret used inside tests
+        // Use a fixed 32-byte secret for tests
         String testSecret = Base64.getEncoder().encodeToString(
                 "0123456789abcdef0123456789abcdef"
                         .getBytes(StandardCharsets.UTF_8)
@@ -31,13 +31,13 @@ class JwtConfigTest {
 
         SecretKey secretKey = jwtConfig.jwtSecretKey(testSecret);
 
-        // use real encoder and decoder
+        // Use the real encoder and decoder
         jwtEncoder = jwtConfig.jwtEncoder(secretKey);
         jwtDecoder = jwtConfig.jwtDecoder(secretKey);
 
     }
 
-    // test if a signed token is still invalid when userId is missing
+    // Verify that a signed token is rejected when userId is missing
     @Test
     void jwtDecoder_shouldRejectTokenWhenUserIdIsMissing() {
 
@@ -56,7 +56,7 @@ class JwtConfigTest {
 
     }
 
-    // verifies that userId must be stored as a number rather than text
+    // Verify that userId must be stored as a number rather than text
     @Test
     void jwtDecoder_shouldRejectTokenWhenUserIdIsNotNumeric() {
 
@@ -75,10 +75,11 @@ class JwtConfigTest {
 
     }
 
-    // verifies that a valid JWT is rejected after its expiration time
+    // Verify that an expired JWT is rejected
     @Test
     void jwtDecoder_shouldRejectExpiredToken() {
-        // create a token that expired an hour ago
+
+        // Create a token that expired one hour ago
         Instant issuedAt = Instant.now().minusSeconds(7200);
         Instant expiresAt = issuedAt.plusSeconds(3600);
 
@@ -98,13 +99,13 @@ class JwtConfigTest {
                 .encode(JwtEncoderParameters.from(header, claims))
                 .getTokenValue();
 
-        // the timestamp validator should reject the expired token
+        // Expect the timestamp validator to reject the expired token
         assertThatThrownBy(() -> jwtDecoder.decode(token))
                 .isInstanceOf(JwtValidationException.class);
 
     }
 
-    // helper to create a correctly signed JWT with customizable userId content
+    // Create a correctly signed JWT with customizable userId content
     private String createToken(
             Object userIdClaim,
             boolean includeUserId
@@ -118,7 +119,7 @@ class JwtConfigTest {
                         .expiresAt(issuedAt.plusSeconds(3600)
                         );
 
-        // the missing-userId tests will skip this claim
+        // Skip the userId claim for the missing-claim test
         if (includeUserId) {
             claimsBuilder.claim("userId", userIdClaim);
         }

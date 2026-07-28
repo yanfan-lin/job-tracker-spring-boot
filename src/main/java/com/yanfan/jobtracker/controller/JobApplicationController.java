@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// handles HTTP requests
+// Handle authenticated job application requests
 @RestController
 @RequestMapping("/applications")
 public class JobApplicationController {
@@ -26,9 +26,7 @@ public class JobApplicationController {
         this.service = service;
     }
 
-    // GET /applications
-    // returns job application owned by the authenticated user,
-    // with optional filtering, search, sorting and pagination
+    // Return the authenticated user's applications with optional filters and pagination
     @GetMapping
     public ResponseEntity<List<JobApplicationResponse>> findAll(
             JwtAuthenticationToken authentication,
@@ -55,8 +53,7 @@ public class JobApplicationController {
 
     }
 
-    // GET /applications/{id}
-    // returns one job application by id
+    // Return one application only when it belongs to the authenticated user
     @GetMapping("/{id}")
     public ResponseEntity<JobApplicationResponse> findById(
             JwtAuthenticationToken authentication,
@@ -71,9 +68,7 @@ public class JobApplicationController {
 
     }
 
-    // POST /applications
-    // creates a new job application record
-    // request body validation handled by @Valid and the DTO validation
+    // Create a new application for the authenticated user
     @PostMapping
     public ResponseEntity<JobApplicationResponse> create(
             JwtAuthenticationToken authentication,
@@ -87,9 +82,7 @@ public class JobApplicationController {
 
     }
 
-    // PATCH /applications/{id}
-    // partially updates an application owned by the authenticated user
-    // all fields are optional
+    // Update only the provided fields of an application owned by the user
     @PatchMapping("/{id}")
     public ResponseEntity<JobApplicationResponse> patch(
             JwtAuthenticationToken authentication,
@@ -103,8 +96,7 @@ public class JobApplicationController {
         return ResponseEntity.ok(updatedApplication);
     }
 
-    // DELETE /applications/{id}
-    // deletes a job application owned by the authenticated user
+    // Delete an application only when it belongs to the authenticated user
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             JwtAuthenticationToken authentication,
@@ -118,7 +110,7 @@ public class JobApplicationController {
 
     }
 
-    // helper to extract the database user id stored in the JWT
+    // Extract the database user ID stored in the validated JWT
     private Long extractUserId(JwtAuthenticationToken authentication) {
         Number userIdClaim = authentication.getToken().getClaim("userId");
 

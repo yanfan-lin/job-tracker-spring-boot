@@ -14,21 +14,20 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// handles authentication-related requests
+// Handle registration and login requests
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
     private final AuthService authService;
 
-    // constructor injection
+    // Constructor injection
     @Autowired
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
 
-    // POST /auth/register
-    // registers a new user account
+    // Register a new user account
     @PostMapping("/register")
     public ResponseEntity<AppUserResponse> register(@Valid @RequestBody RegisterRequest request) {
         AppUserResponse theUser = authService.register(request);
@@ -36,8 +35,7 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(theUser);
     }
 
-    // POST /auth/login
-    // authenticates a user and returns a JWT access token
+    // Authenticate a user and return a JWT access token
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);

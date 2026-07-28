@@ -6,17 +6,17 @@ import jakarta.validation.constraints.Pattern;
 
 import java.time.LocalDate;
 
-// requested DTO used when creating a new job application
+// Accept and validate data for creating a job application
 public class JobApplicationRequest {
 
-    // company and title are required fields
+    // Require company and title
     @NotBlank(message = "Company is required")
     private String company;
 
     @NotBlank(message = "Title is required")
     private String title;
 
-    // status is required and must match one of the supported status values
+    // Require one of the supported status values
     @NotBlank(message = "Status is required")
     @Pattern(
             regexp = "applied|interview|offer|rejected",
@@ -27,11 +27,10 @@ public class JobApplicationRequest {
     @NotNull(message = "Date applied is required")
     private LocalDate dateApplied;
 
-    // optional
     private String notes;
 
 
-    // required by Jackson so Spring can convert JSON into this DTO
+    // Allow Jackson to convert JSON into this DTO
     public JobApplicationRequest() {
 
     }

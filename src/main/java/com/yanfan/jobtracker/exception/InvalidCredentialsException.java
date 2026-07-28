@@ -1,6 +1,7 @@
 package com.yanfan.jobtracker.exception;
 
-public class InvalidCredentialsException extends RuntimeException{
+// Represent a login attempt with invalid credentials
+public class InvalidCredentialsException extends RuntimeException {
 
     public InvalidCredentialsException(String message) {
         super(message);

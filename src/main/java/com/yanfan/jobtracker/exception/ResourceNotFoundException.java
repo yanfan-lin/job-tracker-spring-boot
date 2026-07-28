@@ -1,6 +1,6 @@
 package com.yanfan.jobtracker.exception;
 
-// Custom exception used when a requested database record does not exist.
+// Represent a requested record that cannot be found
 public class ResourceNotFoundException extends RuntimeException {
 
     public ResourceNotFoundException(String message) {
