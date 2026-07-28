@@ -31,8 +31,9 @@ services:
       DATABASE_URL: jdbc:postgresql://db:5432/job_tracker
       DATABASE_USERNAME: postgres
       DATABASE_PASSWORD: postgres
-      APP_USERNAME: admin
-      APP_PASSWORD: changeme
+
+      # JWT secret from the host environment
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set before starting Docker Compose}
 
     ports:
       - "8080:8080"
