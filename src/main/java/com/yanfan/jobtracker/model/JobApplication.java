@@ -15,11 +15,11 @@ public class JobApplication {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // The user who owns this job application
-    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    // every job application must belong to one registered user
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "user_id",
-            nullable = true,
+            nullable = false,
             foreignKey = @ForeignKey(name = "fk_job_applications_user")
     )
     private AppUser user;
