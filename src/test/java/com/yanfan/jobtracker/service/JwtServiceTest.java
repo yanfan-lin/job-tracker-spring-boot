@@ -53,7 +53,8 @@ class JwtServiceTest {
 
         Number userIdClaim = decodedToken.getClaim("userId");
 
-        assert userIdClaim != null;
+        // confirm the decoded token contains the user ID claim expected
+        assertThat(userIdClaim).isNotNull();
         assertThat(userIdClaim.longValue())
                 .isEqualTo(42L);
 
@@ -62,12 +63,11 @@ class JwtServiceTest {
         assertThat(decodedToken.getExpiresAt())
                 .isNotNull();
 
-        assert decodedToken.getIssuedAt() != null;
+        // confirm the token lifetime matches the configured expiration
         assertThat(Duration.between(
                 decodedToken.getIssuedAt(),
                 decodedToken.getExpiresAt()).getSeconds())
                 .isEqualTo(3600);
-
 
     }
 

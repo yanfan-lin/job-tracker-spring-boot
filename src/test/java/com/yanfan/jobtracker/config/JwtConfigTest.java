@@ -75,6 +75,35 @@ class JwtConfigTest {
 
     }
 
+    // verifies that a valid JWT is rejected after its expiration time
+    @Test
+    void jwtDecoder_shouldRejectExpiredToken() {
+        // create a token that expired an hour ago
+        Instant issuedAt = Instant.now().minusSeconds(7200);
+        Instant expiresAt = issuedAt.plusSeconds(3600);
+
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .subject("person@example.com")
+                .claim("userId", 42L)
+                .issuedAt(issuedAt)
+                .expiresAt(expiresAt)
+                .build();
+
+        JwsHeader header = JwsHeader
+                .with(MacAlgorithm.HS256)
+                .type("JWT")
+                .build();
+
+        String token = jwtEncoder
+                .encode(JwtEncoderParameters.from(header, claims))
+                .getTokenValue();
+
+        // the timestamp validator should reject the expired token
+        assertThatThrownBy(() -> jwtDecoder.decode(token))
+                .isInstanceOf(JwtValidationException.class);
+
+    }
+
     // helper to create a correctly signed JWT with customizable userId content
     private String createToken(
             Object userIdClaim,
