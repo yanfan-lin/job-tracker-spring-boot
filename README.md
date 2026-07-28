@@ -6,26 +6,21 @@
 
 ## Project Overview
 
-Job Tracker is a Spring Boot REST API for tracking job applications. The project supports creating, reading, updating,
-deleting, filtering, searching, sorting, and paginating job application records.
+Job Tracker is a Spring Boot REST API with registration, login, signed JWT access tokens, and job applications scoped
+to the authenticated owner. It is an interview-defensible early-career backend portfolio project demonstrating
+practical authentication, authorization, persistence, validation, testing, and containerized local development.
 
 ## Features
 
-- Create job applications
-- View all job applications
-- View a job application by ID
-- Partially update job applications
-- Delete job applications
-- Filter applications by status
-- Search applications by company or title
-- Sort applications by selected fields
-- Paginate results with page and limit
-- Validate request bodies with DTO validation
-- Return structured JSON error responses
-- Use HTTP Basic authentication for write operations
-- Generate Swagger/OpenAPI documentation
-- Run the API and PostgreSQL with Docker Compose
-- Run automated tests in GitHub Actions
+- User registration and login with normalized email addresses and BCrypt password hashing
+- Signed HS256 JWT access tokens and stateless bearer authentication
+- Ownership-scoped create, read, update, and delete operations
+- Filtering, searching, sorting, and pagination
+- DTO validation and structured application-level error responses
+- PostgreSQL persistence through Spring Data JPA
+- Swagger/OpenAPI documentation
+- Docker Compose for the API and database
+- Automated tests and GitHub Actions CI
 
 ## Tech Stack
 
@@ -35,47 +30,64 @@ deleting, filtering, searching, sorting, and paginating job application records.
 - Spring Data JPA / Hibernate
 - PostgreSQL
 - Spring Security
+- Spring OAuth2 Resource Server
+- BCrypt password hashing
 - Spring Boot Actuator
 - Springdoc OpenAPI / Swagger UI
 - Docker / Docker Compose
-- JUnit 5
+- JUnit Jupiter
 - Mockito
 - AssertJ
 - MockMvc
+- Maven Wrapper
 - GitHub Actions CI
 
 ## Project Structure
 
 ```text
 src/main/java/com/yanfan/jobtracker
-├── config
-│   └── SecurityConfig.java
-├── controller
-│   └── JobApplicationController.java
-├── dto
-│   ├── JobApplicationPatchRequest.java
-│   ├── JobApplicationRequest.java
-│   └── JobApplicationResponse.java
-├── exception
-│   ├── GlobalExceptionHandler.java
-│   └── ResourceNotFoundException.java
-├── model
-│   └── JobApplication.java
-├── repository
-│   └── JobApplicationRepository.java
-├── service
-│   └── JobApplicationService.java
-└── JobTrackerApplication.java
+|-- config
+|   |-- JwtConfig.java
+|   `-- SecurityConfig.java
+|-- controller
+|   |-- AuthController.java
+|   `-- JobApplicationController.java
+|-- dto
+|   |-- AppUserResponse.java
+|   |-- RegisterRequest.java
+|   |-- LoginRequest.java
+|   |-- LoginResponse.java
+|   |-- JobApplicationRequest.java
+|   |-- JobApplicationPatchRequest.java
+|   `-- JobApplicationResponse.java
+|-- exception
+|   |-- GlobalExceptionHandler.java
+|   |-- DuplicateEmailException.java
+|   |-- InvalidCredentialsException.java
+|   `-- ResourceNotFoundException.java
+|-- model
+|   |-- AppUser.java
+|   `-- JobApplication.java
+|-- repository
+|   |-- AppUserRepository.java
+|   `-- JobApplicationRepository.java
+|-- service
+|   |-- AuthService.java
+|   |-- JwtService.java
+|   `-- JobApplicationService.java
+`-- JobTrackerApplication.java
 ```
 
 ## Architecture
 
-### The project uses a layered backend structure:
+The project uses a layered backend structure:
 
-- `Controller layer`: receives HTTP requests and returns HTTP responses.
-- `Service layer`: contains business logic such as validation flow, update logic, filtering, sorting, and DTO mapping.
-- `Repository layer`: handles database access through Spring Data JPA.
-- `DTO layer`: separates API request/response models from the database entity.
+- `Controller layer`: receives HTTP requests, extracts the authenticated identity, and returns HTTP responses.
+- `Service layer`: contains registration, login, ownership, update, filtering, sorting, and DTO-mapping logic.
+- `Repository layer`: handles PostgreSQL access through Spring Data JPA.
+- `Model layer`: maps users, job applications, timestamps, and their ownership relationship.
+- `DTO layer`: separates API request and response models from JPA entities and keeps password hashes out of responses.
+- `Configuration layer`: configures BCrypt, stateless Spring Security, and JWT signing and validation.
 - `Exception layer`: converts application errors into consistent JSON error responses.
 
 ## Local Setup
@@ -84,49 +96,62 @@ src/main/java/com/yanfan/jobtracker
 
 ```bash
 git clone https://github.com/yanfan-lin/job-tracker-spring-boot.git
-```
-
-```bash
 cd job-tracker-spring-boot
 ```
 
 ### 2. Requirements
 
-#### Make sure the following tools are installed:
-
 - Java 21
 - Docker Desktop
-- PostgreSQL (only needed if running without Docker)
+- PostgreSQL, only when running without Docker
 - Git
 
 The project includes a Maven wrapper, so Maven does not need to be installed separately.
 
 ### 3. Run with Docker Compose
 
-The recommended local setup is Docker Compose because it starts both the Spring Boot API and PostgreSQL:
+Docker Compose starts both the Spring Boot API and PostgreSQL. Set `JWT_SECRET` in the same shell before starting it;
+Compose stops with an environment-variable error if the value is missing.
 
-```bash
+`JWT_SECRET` must be Base64 encoded and must decode to at least 32 bytes (256 bits). Generate a separate secret for
+each environment. The examples below create a temporary random secret for local development; they are not production
+secrets and should not be committed.
+
+#### Windows PowerShell
+
+```powershell
+$secretBytes = New-Object byte[] 32
+$random = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$random.GetBytes($secretBytes)
+$random.Dispose()
+$env:JWT_SECRET = [Convert]::ToBase64String($secretBytes)
+
 docker compose up --build
 ```
 
-#### The API will be available at:
+#### macOS/Linux shell
 
-- http://localhost:8080
+```bash
+export JWT_SECRET="$(openssl rand -base64 32)"
+docker compose up --build
+```
 
-The PostgreSQL container is exposed on host port 5433 to avoid conflicts with a local PostgreSQL installation.
+The services are exposed at:
 
-#### PostgreSQL connection from the host machine:
+- API: http://localhost:8080
+- PostgreSQL from the host: `localhost:5433`
+- PostgreSQL inside the Compose network: `db:5432`
 
-- Host: `localhost`
-- Port: `5433`
+The PostgreSQL container uses host port 5433 to avoid conflicts with a PostgreSQL installation already using port
+5432.
 
-#### To stop the containers:
+To stop the containers:
 
 ```bash
 docker compose down
 ```
 
-#### To stop the containers and remove the database volume:
+To stop the containers and remove the local database volume:
 
 ```bash
 docker compose down -v
@@ -134,101 +159,158 @@ docker compose down -v
 
 ### 4. Run locally without Docker
 
-If you want to run the Spring Boot app directly from IntelliJ or the terminal, create a local PostgreSQL database
-first:
+Create a local PostgreSQL database:
 
 ```sql
 CREATE DATABASE job_tracker;
 ```
 
-The application reads database and security settings from environment variables.
-Recommended local environment variables:
+Set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `JWT_SECRET`. The database properties have local
+fallback values, but `JWT_SECRET` is required and must meet the Base64 and 32-byte decoded-length requirements above.
 
-```TEXT
-DATABASE_URL=jdbc:postgresql://localhost:5432/job_tracker
-DATABASE_USERNAME=postgres
-DATABASE_PASSWORD=your_local_postgres_password
-APP_USERNAME=admin
-APP_PASSWORD=changeme
-```
-
-On Windows PowerShell, you can set them temporarily with:
+#### Windows PowerShell
 
 ```powershell
-$env:DATABASE_URL="jdbc:postgresql://localhost:5432/job_tracker"
-$env:DATABASE_USERNAME="postgres"
-$env:DATABASE_PASSWORD="your_local_postgres_password"
-$env:APP_USERNAME="admin"
-$env:APP_PASSWORD="changeme"
-```
+$env:DATABASE_URL = "jdbc:postgresql://localhost:5432/job_tracker"
+$env:DATABASE_USERNAME = "postgres"
+$env:DATABASE_PASSWORD = "your_local_postgres_password"
 
-Then run the app with:
+$secretBytes = New-Object byte[] 32
+$random = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$random.GetBytes($secretBytes)
+$random.Dispose()
+$env:JWT_SECRET = [Convert]::ToBase64String($secretBytes)
 
-```bash
 .\mvnw.cmd spring-boot:run
 ```
 
-On macOS/Linux:
+#### macOS/Linux shell
 
 ```bash
+export DATABASE_URL="jdbc:postgresql://localhost:5432/job_tracker"
+export DATABASE_USERNAME="postgres"
+export DATABASE_PASSWORD="your_local_postgres_password"
+export JWT_SECRET="$(openssl rand -base64 32)"
+
 ./mvnw spring-boot:run
 ```
 
 ## Environment and Database Configuration
 
-The application reads its database connection from these environment variables:
+| Variable | Docker Compose | Local non-Docker |
+|----------|----------------|------------------|
+| `DATABASE_URL` | `jdbc:postgresql://db:5432/job_tracker` | `jdbc:postgresql://localhost:5432/job_tracker` |
+| `DATABASE_USERNAME` | `postgres` | Your local PostgreSQL username |
+| `DATABASE_PASSWORD` | `postgres` | Your local PostgreSQL password |
+| `JWT_SECRET` | Passed through from the host | Set in the shell that starts the application |
 
-- `DATABASE_URL`
-- `DATABASE_USERNAME`
-- `DATABASE_PASSWORD`
+`JWT_SECRET` must be Base64 encoded and decode to at least 32 bytes. Hibernate currently uses
+`spring.jpa.hibernate.ddl-auto=update`, and Open Session in View is disabled.
 
-For Docker Compose local development, the app connects to the PostgreSQL service using the values defined in
-docker-compose.yml:
+## Authentication
 
-- `DATABASE_URL=jdbc:postgresql://db:5432/job_tracker`
-- `DATABASE_USERNAME=postgres`
-- `DATABASE_PASSWORD=postgres`
+### Public authentication endpoints
 
-For local non-Docker development, the app can connect to a PostgreSQL database running on localhost:
+#### Register
 
-```text
-DATABASE_URL=jdbc:postgresql://localhost:5432/job_tracker
-DATABASE_USERNAME=postgres
-DATABASE_PASSWORD=your_local_postgres_password
+`POST /auth/register`
+
+Request:
+
+```json
+{
+  "email": "person@example.com",
+  "password": "password123"
+}
 ```
 
-The application also reads demo HTTP Basic Auth credentials from:
+The email must be valid and no longer than 254 characters. Registration passwords must contain at least 8 characters.
+Emails are trimmed and normalized to lowercase before storage.
 
-- `APP_USERNAME`
-- `APP_PASSWORD`
+Successful response:
 
-Default demo credentials used by Docker Compose:
+```json
+{
+  "id": 1,
+  "email": "person@example.com",
+  "createdAt": "2026-07-27T10:00:00"
+}
+```
 
-- Username: `admin`
-- Password: `changeme`
+The stored BCrypt password hash is not included in the response.
 
-## Local API Docs
+#### Log in
 
-### After the server starts, open:
+`POST /auth/login`
+
+Request:
+
+```json
+{
+  "email": "person@example.com",
+  "password": "password123"
+}
+```
+
+Successful response:
+
+```json
+{
+  "accessToken": "signed-jwt-value",
+  "tokenType": "Bearer",
+  "expiresIn": 3600
+}
+```
+
+`expiresIn` is expressed in seconds.
+
+### Authentication flow
+
+1. Register with `POST /auth/register`.
+2. Log in with `POST /auth/login`.
+3. Copy the returned `accessToken`.
+4. Send it to protected endpoints with the header `Authorization: Bearer <accessToken>`.
+
+## Security
+
+Only these two routes are public, and only for POST requests:
+
+- `POST /auth/register`
+- `POST /auth/login`
+
+All `/applications` endpoints require a valid JWT bearer token. The current `SecurityConfig` also requires
+authentication for Swagger UI, the OpenAPI document, actuator health, and every unmatched route.
+
+Tokens are signed and verified with HS256. The decoder validates the signature and standard timestamps, including
+expiration, and requires a positive numeric `userId` claim. A missing, invalid, expired, or incomplete bearer token is
+rejected before an application controller runs.
+
+The server creates the `userId` claim from the authenticated database user during login and uses it to assign new
+applications. Collection queries filter by that user ID; individual read, update, and delete queries use both the
+application ID and user ID. One user therefore cannot access another user's application through these endpoints.
+
+Requests for a nonexistent application and requests for another user's application both receive a not-found response,
+which avoids exposing whether another user's record exists.
+
+## Swagger / OpenAPI
+
+Springdoc generates:
 
 - Swagger UI: http://localhost:8080/swagger-ui/index.html
 - OpenAPI JSON: http://localhost:8080/v3/api-docs
 
+Both routes currently require bearer authentication under `SecurityConfig`.
+
 ## Health Check
 
-You can verify that the API is running with:
+Only `GET /actuator/health` is exposed, and it currently requires bearer authentication:
 
 ```bash
-curl -i http://localhost:8080/actuator/health
+curl -i "http://localhost:8080/actuator/health" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
-Expected result:
-
-```bash
-HTTP/1.1 200 OK
-```
-
-The response body should include:
+A healthy response includes:
 
 ```json
 {
@@ -236,85 +318,33 @@ The response body should include:
 }
 ```
 
-## Run Tests
-
-### The test suite includes:
-
-- Service unit tests
-- Controller tests
-- Security tests
-
-### Run the automated test suite with:
-
-```bash
-.\mvnw.cmd test
-```
-
-On macOS/Linux:
-
-```bash
-./mvnw test
-```
-
-## CI
-
-### GitHub Actions runs the Maven test suite automatically on:
-
-- push to `main`
-- pull requests to `main`
-
-### Workflow file:
-
-- `.github/workflows/ci.yml`
-
-## Security
-
-### Read endpoints are public:
-
-- `GET /applications`
-- `GET /applications/{id}`
-- `GET /actuator/health`
-- `GET /swagger-ui/index.html`
-- `GET /v3/api-docs`
-
-### Write endpoints require HTTP Basic authentication:
-
-- `POST /applications`
-- `PATCH /applications/{id}`
-- `DELETE /applications/{id}`
-
-### Default Docker/local demo credentials:
-
-- Username: `admin`
-- Password: `changeme`
-
-For real deployment, credentials should be provided through environment variables or a secret manager.
-
 ## API Endpoints
 
-| Method | Endpoint                 | Auth Required | Description                        |
-|--------|--------------------------|---------------|------------------------------------|
-| GET    | `/applications`          | No            | List job applications              |
-| GET    | `/applications/{id}`     | No            | Get one job application            |
-| POST   | `/applications`          | Yes           | Create a job application           |
-| PATCH  | `/applications/{id}`     | Yes           | Partially update a job application |
-| DELETE | `/applications/{id}`     | Yes           | Delete a job application           |
-| GET    | `/actuator/health`       | No            | Health check                       |
-| GET    | `/swagger-ui/index.html` | No            | Swagger UI                         |
-| GET    | `/v3/api-docs`           | No            | OpenAPI JSON                       |
+| Method | Endpoint                 | Authentication | Description                                      |
+|--------|--------------------------|----------------|--------------------------------------------------|
+| POST   | `/auth/register`         | Public         | Register a user                                  |
+| POST   | `/auth/login`            | Public         | Log in and receive a JWT access token            |
+| GET    | `/applications`          | Bearer token   | List the authenticated user's applications       |
+| GET    | `/applications/{id}`     | Bearer token   | Get an owned application                         |
+| POST   | `/applications`          | Bearer token   | Create an application for the authenticated user |
+| PATCH  | `/applications/{id}`     | Bearer token   | Partially update an owned application             |
+| DELETE | `/applications/{id}`     | Bearer token   | Delete an owned application                      |
+| GET    | `/actuator/health`       | Bearer token   | Check application health                         |
+| GET    | `/swagger-ui/index.html` | Bearer token   | View Swagger UI                                  |
+| GET    | `/v3/api-docs`           | Bearer token   | Get the OpenAPI document                         |
 
 ## Query Parameters
 
 `GET /applications` supports:
 
-| Parameter | Example        | Description                     |
-|-----------|----------------|---------------------------------|
-| `status`  | `interview`    | Filters by status               |
-| `search`  | `java`         | Searches company and title      |
-| `sort_by` | `date_applied` | Sort field                      |
-| `order`   | `asc`          | Sort direction: `asc` or `desc` |
-| `limit`   | `10`           | Number of records per page      |
-| `page`    | `0`            | Page number, starting from 0    |
+| Parameter | Default        | Example        | Description                             |
+|-----------|----------------|----------------|-----------------------------------------|
+| `status`  | none           | `interview`    | Filter by status                        |
+| `search`  | none           | `java`         | Search company and title                |
+| `sort_by` | `date_applied` | `created_at`   | Select the sort field                   |
+| `order`   | `desc`         | `asc`          | Select `asc` or `desc`                  |
+| `limit`   | `10`           | `5`            | Set the number of records per page      |
+| `page`    | `0`            | `1`            | Select a zero-based page                |
 
 Supported `status` values:
 
@@ -335,35 +365,55 @@ Supported `sort_by` values:
 
 ## Example Requests
 
-### List all applications
+The following examples use a shell such as Bash, zsh, or Git Bash.
+
+### Register a user
 
 ```bash
-curl -i "http://localhost:8080/applications"
+curl -i -X POST "http://localhost:8080/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "person@example.com",
+    "password": "password123"
+  }'
 ```
 
-### Search applications
+### Log in
 
 ```bash
-curl -i "http://localhost:8080/applications?search=java"
+curl -i -X POST "http://localhost:8080/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "person@example.com",
+    "password": "password123"
+  }'
 ```
 
-### Filter by status
+Copy the `accessToken` value from the login response and save it:
 
 ```bash
-curl -i "http://localhost:8080/applications?status=interview"
+export ACCESS_TOKEN="<paste accessToken here>"
 ```
 
-### Sort and paginate
+### List the authenticated user's applications
 
 ```bash
-curl -i "http://localhost:8080/applications?sort_by=date_applied&order=asc&limit=5&page=0"
+curl -i "http://localhost:8080/applications" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+```
+
+Filtering, searching, sorting, and pagination can be combined:
+
+```bash
+curl -i "http://localhost:8080/applications?status=interview&search=java&sort_by=date_applied&order=asc&limit=5&page=0" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
 ### Create an application
 
 ```bash
 curl -i -X POST "http://localhost:8080/applications" \
-  -u "admin:changeme" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "company": "Amazon",
@@ -374,11 +424,11 @@ curl -i -X POST "http://localhost:8080/applications" \
   }'
 ```
 
-### Update an application
+### Update an owned application
 
 ```bash
 curl -i -X PATCH "http://localhost:8080/applications/1" \
-  -u "admin:changeme" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "status": "interview",
@@ -386,14 +436,38 @@ curl -i -X PATCH "http://localhost:8080/applications/1" \
   }'
 ```
 
-### Delete an application
+All PATCH fields are optional. If supplied, `status` must be one of the supported values.
+
+### Delete an owned application
 
 ```bash
 curl -i -X DELETE "http://localhost:8080/applications/1" \
-  -u "admin:changeme"
+  -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
-## Example Response
+### Short Windows PowerShell token example
+
+```powershell
+$loginBody = @{
+    email = "person@example.com"
+    password = "password123"
+} | ConvertTo-Json
+
+$loginResponse = Invoke-RestMethod `
+    -Method Post `
+    -Uri "http://localhost:8080/auth/login" `
+    -ContentType "application/json" `
+    -Body $loginBody
+
+$accessToken = $loginResponse.accessToken
+
+Invoke-RestMethod `
+    -Method Get `
+    -Uri "http://localhost:8080/applications" `
+    -Headers @{ Authorization = "Bearer $accessToken" }
+```
+
+## Example Job Application Response
 
 ```json
 {
@@ -410,9 +484,10 @@ curl -i -X DELETE "http://localhost:8080/applications/1" \
 
 ## Error Response Format
 
-The API returns structured JSON error responses:
+The global exception handler returns structured JSON for application-level errors such as validation failures,
+duplicate registration, invalid login credentials, missing resources, and invalid query parameters.
 
-### Example 404 response:
+### Example 404 response
 
 ```json
 {
@@ -423,7 +498,7 @@ The API returns structured JSON error responses:
 }
 ```
 
-### Example validation response:
+### Example validation response
 
 ```json
 {
@@ -440,19 +515,56 @@ The API returns structured JSON error responses:
 }
 ```
 
+Authentication failures are handled by Spring Security before the controller and may use Spring Security's response
+format rather than the global exception-handler format.
+
+## Run Tests
+
+The automated test suite includes:
+
+- Registration and login controller and service tests
+- Password-hashing and credential-checking behavior tests
+- Real JWT signing and decoding tests
+- JWT required-claim validation tests
+- Spring Security route-access tests
+- Ownership-scoped application service and controller tests
+- Request validation and error-response tests
+
+Run the tests on Windows:
+
+```powershell
+.\mvnw.cmd test
+```
+
+Run the tests on macOS/Linux:
+
+```bash
+./mvnw test
+```
+
+## CI
+
+GitHub Actions runs the Maven test suite automatically for:
+
+- pushes to `main`
+- pull requests targeting `main`
+
+Workflow file:
+
+- `.github/workflows/ci.yml`
+
+The workflow uses Java 21 and the Maven wrapper on an Ubuntu runner.
+
 ## Project Highlights
 
-### This project demonstrates:
+This project demonstrates:
 
-- Building REST APIs with Spring Boot
-- Designing layered backend architecture
-- Using DTOs for request and response separation
-- Validating API input with Jakarta Bean Validation
-- Handling errors with a global exception handler
-- Using PostgreSQL with Spring Data JPA and Hibernate
-- Implementing filtering, searching, sorting, and pagination
-- Adding HTTP Basic security
-- Writing service, controller, and security tests
-- Running the project with Docker Compose
-- Generating Swagger/OpenAPI documentation
-- Running automated tests with GitHub Actions CI
+- Designing a readable layered REST API with Spring Boot
+- Persisting and querying relational data with PostgreSQL, Spring Data JPA, and Hibernate
+- Registering users, normalizing email addresses, and hashing passwords with BCrypt
+- Issuing and validating HS256 JWTs with stateless Spring Security authentication
+- Validating required claims and enforcing per-user ownership
+- Separating API and persistence models with DTOs
+- Applying Jakarta Bean Validation and consistent application-level error handling
+- Testing authentication, JWTs, controllers, services, security, and ownership behavior
+- Using Docker Compose, Swagger/OpenAPI, and GitHub Actions CI
