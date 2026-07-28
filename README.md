@@ -546,14 +546,14 @@ Run the tests on macOS/Linux:
 
 GitHub Actions runs the Maven test suite automatically for:
 
-- pushes to `main`
-- pull requests targeting `main`
+- pushes to `main` and `dev`
+- pull requests targeting `main` or `dev`
 
 Workflow file:
 
 - `.github/workflows/ci.yml`
 
-The workflow uses Java 21 and the Maven wrapper on an Ubuntu runner.
+The workflow uses Java 21, the Maven wrapper, Maven dependency caching, and a fixed test-only JWT secret on an Ubuntu runner.
 
 ## Project Highlights
 
