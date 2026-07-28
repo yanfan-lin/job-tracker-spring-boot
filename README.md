@@ -527,7 +527,8 @@ The automated test suite includes:
 - Real JWT signing and decoding tests
 - JWT required-claim validation tests
 - Spring Security route-access tests
-- Ownership-scoped application service and controller tests
+- Ownership-scoped controller, service, and repository integration tests
+- H2-backed JPA tests for real ownership-scoped repository queries
 - Request validation and error-response tests
 
 Run the tests on Windows:
