@@ -214,6 +214,33 @@ class JobApplicationControllerTest {
 
     }
 
+    // Verify an overlong company is rejected during creation
+    @Test
+    void create_shouldReturnBadRequestWhenCompanyExceedsMaximumLength() throws Exception {
+        String overlongCompany = "A".repeat(256);
+
+        String request = """
+                {
+                  "company": "%s",
+                  "title": "Backend Developer",
+                  "status": "applied",
+                  "dateApplied": "2026-07-06"
+                }
+                """.formatted(overlongCompany);
+
+        mockMvc.perform(post("/applications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Validation Error"))
+                .andExpect(jsonPath("$.fieldErrors.company")
+                        .value("Company must not exceed 255 characters"));
+
+        verifyNoInteractions(service);
+
+    }
+
     // Verify a valid partial update returns 200 OK
     @Test
     void patch_shouldReturnUpdatedApplication() throws Exception {
@@ -272,6 +299,55 @@ class JobApplicationControllerTest {
                 .andExpect(jsonPath("$.error").value("Validation Error"))
                 .andExpect(jsonPath("$.message").value("Request body validation failed"))
                 .andExpect(jsonPath("$.fieldErrors.status").exists());
+
+    }
+
+    // Verify blank supplied fields are rejected during a partial update
+    @Test
+    void patch_shouldReturnBadRequestWhenCompanyAndTitleAreBlank() throws Exception {
+        String request = """
+                {
+                  "company": "",
+                  "title": "   "
+                }
+                """;
+
+        mockMvc.perform(patch("/applications/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Validation Error"))
+                .andExpect(jsonPath("$.fieldErrors.company")
+                        .value("Company must not be blank"))
+                .andExpect(jsonPath("$.fieldErrors.title")
+                        .value("Title must not be blank"));
+
+        verifyNoInteractions(service);
+
+    }
+
+    // Verify an overlong title is rejected during a partial update
+    @Test
+    void patch_shouldReturnBadRequestWhenTitleExceedsMaximumLength() throws Exception {
+        String overlongTitle = "T".repeat(256);
+
+        String request = """
+                {
+                  "title": "%s"
+                }
+                """.formatted(overlongTitle);
+
+        mockMvc.perform(patch("/applications/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Validation Error"))
+                .andExpect(jsonPath("$.fieldErrors.title")
+                        .value("Title must not exceed 255 characters"));
+
+        verifyNoInteractions(service);
 
     }
 

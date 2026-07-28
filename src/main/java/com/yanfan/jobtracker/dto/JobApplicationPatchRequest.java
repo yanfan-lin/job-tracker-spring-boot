@@ -1,15 +1,28 @@
 package com.yanfan.jobtracker.dto;
 
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
 // Accept optional fields for partially updating a job application
 public class JobApplicationPatchRequest {
 
+    @Pattern(
+            regexp = ".*\\S.*",
+            message = "Company must not be blank"
+    )
+    @Size(max = 255, message = "Company must not exceed 255 characters")
     private String company;
 
+
+    @Pattern(
+            regexp = ".*\\S.*",
+            message = "Title must not be blank"
+    )
+    @Size(max = 255, message = "Title must not exceed 255 characters")
     private String title;
+
 
     // Validate status only when it is provided
     @Pattern(
