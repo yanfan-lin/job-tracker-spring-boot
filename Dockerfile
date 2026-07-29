@@ -1,35 +1,33 @@
-# use JDK 21 to comile the Spring Boot application
+# Build the Spring Boot application with JDK 21
 FROM eclipse-temurin:21-jdk AS build
 
 WORKDIR /app
 
-# copy Maven wrapper and project configs
+# Copy dependency files first so Docker can reuse cached layers
 COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
 
-# make the Maven wrapper executable inside the Linux container
+# Make the Maven wrapper executable inside the Linux container
 RUN chmod +x mvnw
 
-# install dependencies
+# Download dependencies before copying the source code
 RUN ./mvnw dependency:go-offline
 
-# copy application source code
+# Copy the application source code
 COPY src src
 
-# build the application jar
+# Build the executable JAR without rerunning tests
 RUN ./mvnw clean package -DskipTests
 
-# use jre image to run the built jar
+# Run the application with a smaller JRE image
 FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# copy the built jar from build stage
+# Copy only the built JAR from the build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# expose port 8080
 EXPOSE 8080
 
-# run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]

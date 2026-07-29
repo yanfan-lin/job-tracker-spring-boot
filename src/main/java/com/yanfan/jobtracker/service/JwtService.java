@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
-// creates signed JWT access tokens
+// Create signed JWT access tokens
 @Service
 public class JwtService {
 
@@ -21,7 +21,7 @@ public class JwtService {
 
     private final long expirationSeconds;
 
-
+    // Constructor injection
     @Autowired
     public JwtService(
             JwtEncoder jwtEncoder,
@@ -31,17 +31,19 @@ public class JwtService {
         this.expirationSeconds = expirationSeconds;
     }
 
-    // creates a signed access token for an authenticated user
+    // Create a signed access token for an authenticated user
     public String generateToken(AppUser user) {
 
         Instant issuedAt = Instant.now();
         Instant expiresAt = issuedAt.plusSeconds(expirationSeconds);
 
+        // Use HS256 to match the encoder and decoder configuration
         JwsHeader header = JwsHeader
                 .with(MacAlgorithm.HS256)
                 .type("JWT")
                 .build();
 
+        // Store the email as the subject and the database user ID as a custom claim
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(user.getEmail())
                 .issuedAt(issuedAt)

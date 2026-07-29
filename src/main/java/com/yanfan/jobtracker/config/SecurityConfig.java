@@ -1,5 +1,6 @@
 package com.yanfan.jobtracker.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -12,39 +13,61 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 
-// security configuration for REST APIs
+// Configure stateless JWT security for the REST API
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // defines public endpoints and JWT-protected endpoints
+    private final boolean swaggerPublic;
+
+    // Constructor injection
+    public SecurityConfig(
+            @Value("${app.swagger.public:false}") boolean swaggerPublic
+    ) {
+        this.swaggerPublic = swaggerPublic;
+    }
+
+    // Define public routes and enable JWT bearer authentication
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // JWT authentication does not use browser from sessions
+
+                // CSRF is disabled because JWTs are sent in the Authorization header, not cookies
                 .csrf(csrf -> csrf.disable())
 
-                // each request must carry its own JWT
+                // Do not create server-side sessions; each request must include its own JWT
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                .authorizeHttpRequests(auth -> auth
-                        // user registration and login are public
-                        .requestMatchers(HttpMethod.POST,
-                                "/auth/register",
-                                "/auth/login"
-                        ).permitAll()
+                .authorizeHttpRequests(auth -> {
+                    // User registration and login are public
+                    auth.requestMatchers(
+                            HttpMethod.POST,
+                            "/auth/register",
+                            "/auth/login"
+                    ).permitAll();
 
-                        // all read endpoints are public
-                        .requestMatchers(HttpMethod.GET, "/**")
-                        .permitAll()
+                    // Allow Swagger access only when enabled for the current environment
+                    if (swaggerPublic) {
+                        auth.requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**"
+                        ).permitAll();
+                    }
 
-                        // all other requests requires a valid JWT
-                        .anyRequest().authenticated()
-                )
+                    // All job application endpoints require authentication
+                    auth.requestMatchers(
+                            "/applications",
+                            "/applications/**"
+                    ).authenticated();
 
-                // Reads and validates Authorization: Bearer <JWT>
+                    auth.anyRequest().authenticated();
+                })
+
+                // Read and validate bearer tokens from the Authorization header
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(Customizer.withDefaults())
                 );
@@ -53,7 +76,7 @@ public class SecurityConfig {
 
     }
 
-    // use BCrypt to encrypt the password
+    // Use BCrypt to hash and verify passwords
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

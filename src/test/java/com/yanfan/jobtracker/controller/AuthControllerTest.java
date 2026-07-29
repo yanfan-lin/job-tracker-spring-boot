@@ -1,9 +1,9 @@
 package com.yanfan.jobtracker.controller;
 
 import com.yanfan.jobtracker.dto.AppUserResponse;
-import com.yanfan.jobtracker.dto.RegisterRequest;
 import com.yanfan.jobtracker.dto.LoginRequest;
 import com.yanfan.jobtracker.dto.LoginResponse;
+import com.yanfan.jobtracker.dto.RegisterRequest;
 import com.yanfan.jobtracker.exception.DuplicateEmailException;
 import com.yanfan.jobtracker.exception.InvalidCredentialsException;
 import com.yanfan.jobtracker.service.AuthService;
@@ -26,9 +26,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-// controller tests for AuthController
-// The service is mocked so the tests focus on HTTP behavior
+// Test AuthController HTTP behavior with a mocked service
 @WebMvcTest(AuthController.class)
+
+// Disable security filters so these tests focus on validation and HTTP responses
 @AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
 
@@ -39,7 +40,7 @@ class AuthControllerTest {
     private AuthService authService;
 
 
-    // verifies that a valid registration returns 201 created
+    // Verify valid registration returns 201 Created
     @Test
     void register_shouldReturnCreatedUser() throws Exception {
         String request = """
@@ -67,9 +68,10 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.createdAt").value("2026-07-24T18:30:00"))
                 .andExpect(jsonPath("$.password").doesNotExist())
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
+
     }
 
-    // verifies that an invalid registration input returns 400 bad request
+    // Verify invalid registration data returns 400 Bad Request
     @Test
     void register_shouldReturnBadRequestWhenRequestIsInvalid() throws Exception {
         String request = """
@@ -90,12 +92,12 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.fieldErrors.password")
                         .value("Password must be at least 8 characters"));
 
-        // validation should stop the request before calling AuthService
+        // Stop before calling AuthService when validation fails
         verifyNoInteractions(authService);
 
     }
 
-    // verifies that registering an existing email returns 409 conflict
+    // Verify duplicate registration returns 409 Conflict
     @Test
     void register_shouldReturnConflictWhenEmailAlreadyExists() throws Exception {
         String request = """
@@ -118,9 +120,10 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.error").value("Conflict"))
                 .andExpect(jsonPath("$.message")
                         .value("Email is already registered"));
+
     }
 
-    // verifies that malformed registration JSON request body returns 400 bad request
+    // Verify malformed registration JSON returns 400 Bad Request
     @Test
     void register_shouldReturnBadRequestWhenJsonIsMalformed() throws Exception {
         String request = """
@@ -138,12 +141,12 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message")
                         .value("Malformed JSON request body"));
 
-        // malformed JSON should not be converted into RegisterRequest
+        // Do not create RegisterRequest from malformed JSON
         verifyNoInteractions(authService);
 
     }
 
-    // verifies that surrounding email whitespace is removed before calling AuthService
+    // Verify surrounding email whitespace is removed before calling AuthService
     @Test
     void register_shouldTrimEmailBeforeCallingService() throws Exception {
         String request = """
@@ -174,9 +177,10 @@ class AuthControllerTest {
 
         assertThat(requestCaptor.getValue().getEmail())
                 .isEqualTo("Person@Example.COM");
+
     }
 
-    // verifies that valid logins return a JWT response
+    // Verify valid login returns a JWT response
     @Test
     void login_shouldReturnJwtResponse() throws Exception {
         String request = """
@@ -208,7 +212,7 @@ class AuthControllerTest {
 
     }
 
-    // verifies that incorrect logins return 401 unauthorized
+    // Verify invalid credentials return 401 Unauthorized
     @Test
     void login_shouldReturnUnauthorizedWhenCredentialsAreInvalid() throws Exception {
         String request = """
@@ -234,7 +238,7 @@ class AuthControllerTest {
 
     }
 
-    // verifies that invalid logins return 400 bad request
+    // Verify invalid login data returns 400 Bad Request
     @Test
     void login_shouldReturnBadRequestWhenRequestIsInvalid() throws Exception {
         String request = """
@@ -257,11 +261,12 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.fieldErrors.password")
                         .value("Password is required"));
 
-        // invalid input should be rejected before the authentication
+        // Reject invalid input before calling AuthService
         verifyNoInteractions(authService);
+
     }
 
-    // verifies that malformed login JSON returns 400 bad request
+    // Verify malformed login JSON returns 400 Bad Request
     @Test
     void login_shouldReturnBadRequestWhenJsonIsMalformed() throws Exception {
         String request = """
@@ -279,8 +284,9 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message")
                         .value("Malformed JSON request body"));
 
-        // should not create LoginRequest from malformed JSON
+        // Do not create LoginRequest from malformed JSON
         verifyNoInteractions(authService);
+
     }
 
 

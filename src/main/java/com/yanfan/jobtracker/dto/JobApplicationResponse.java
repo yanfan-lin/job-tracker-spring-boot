@@ -3,7 +3,7 @@ package com.yanfan.jobtracker.dto;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// response DTO used when returning job application data back to the clients
+// Return job application data to API clients
 public class JobApplicationResponse {
 
     private Long id;
@@ -16,7 +16,7 @@ public class JobApplicationResponse {
     private LocalDateTime updatedAt;
 
 
-    public JobApplicationResponse(){
+    public JobApplicationResponse() {
     }
 
     public JobApplicationResponse(Long id, String company, String title, String status, LocalDate dateApplied, String notes, LocalDateTime createdAt, LocalDateTime updatedAt) {

@@ -7,24 +7,40 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-// JobApplication database access layer
-// JpaRepository provides built-in CRUD methods
+import java.util.Optional;
+
+// Provide database access for job applications
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long> {
-    // JPQL query for the list endpoint
-    // if status or search is null, status filter is ignored
-    // iif search is null, the key word search is ignored
+
+    // Return the user's applications with optional status and text filters
     @Query("""
-            SELECT j FROM JobApplication j
-            WHERE (:status IS NULL OR j.status = :status)
+            SELECT j FROM JobApplication j 
+            WHERE j.user.id = :userId
+            AND (:status IS NULL OR j.status = :status)
             AND (
-                LOWER(j.company) LIKE LOWER(CONCAT('%', :search, '%'))
-                OR LOWER(j.title) LIKE LOWER(CONCAT('%', :search, '%'))
-            )
+                 LOWER(j.company) LIKE LOWER(CONCAT('%', :search, '%'))
+                 OR LOWER(j.title) LIKE LOWER(CONCAT('%', :search, '%'))
+                )
             """)
-    Page<JobApplication> findWithFilters(
+    Page<JobApplication> findWithFiltersForUser(
+            @Param("userId") Long userId,
             @Param("status") String status,
             @Param("search") String search,
             Pageable pageable
+
     );
+
+    // Find one application only when both the application ID and user ID match
+    @Query("""
+            SELECT j FROM JobApplication j
+            WHERE j.id = :id
+            AND j.user.id = :userId
+            """)
+    Optional<JobApplication> findByIdAndUserId(
+            @Param("id") Long id,
+            @Param("userId") Long userId
+
+    );
+
 
 }

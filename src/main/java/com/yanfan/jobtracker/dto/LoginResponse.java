@@ -1,6 +1,6 @@
 package com.yanfan.jobtracker.dto;
 
-// Response DTO returned after successful login
+// Return the access token and expiration details after login
 public class LoginResponse {
 
     private final String accessToken;

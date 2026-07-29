@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-// Request DTO for login credentials
+// Accept and validate login credentials
 public class LoginRequest {
 
     @NotBlank(message = "Email is required")
@@ -15,7 +15,7 @@ public class LoginRequest {
     @NotBlank(message = "Password is required")
     private String password;
 
-
+    // Allow Jackson to convert JSON into this DTO
     public LoginRequest() {
 
     }
@@ -30,8 +30,11 @@ public class LoginRequest {
         return email;
     }
 
+    // Trim surrounding spaces before validation and normalization
     public void setEmail(String email) {
+
         this.email = email == null ? null : email.trim();
+
     }
 
     public String getPassword() {

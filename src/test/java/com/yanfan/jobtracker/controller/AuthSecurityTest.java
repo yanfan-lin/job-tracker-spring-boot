@@ -11,9 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import java.time.LocalDateTime;
 
@@ -24,8 +24,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-// security tests for authentication endpoints
+// Test that registration and login remain public under SecurityConfig
 @WebMvcTest(AuthController.class)
+
+// Load the real security rules for these endpoint tests
 @Import(SecurityConfig.class)
 class AuthSecurityTest {
 
@@ -35,11 +37,12 @@ class AuthSecurityTest {
     @MockitoBean
     private AuthService authService;
 
+    // Provide a mocked decoder so SecurityConfig can load in this MVC test
     @MockitoBean
     private JwtDecoder jwtDecoder;
 
 
-    // verifies that users can register without being authenticated
+    // Verify users can register without authentication
     @Test
     void register_shouldBePublic() throws Exception {
         String request = """
@@ -66,7 +69,7 @@ class AuthSecurityTest {
 
     }
 
-    // verifies that users can log in without already being authenticated
+    // Verify users can log in without prior authentication
     @Test
     void login_shouldBePublic() throws Exception {
         String request = """
@@ -85,17 +88,15 @@ class AuthSecurityTest {
         when(authService.login(any(LoginRequest.class)))
                 .thenReturn(response);
 
-        // authentication credentials are not included
+        // Send the request without authentication credentials
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken")
                         .value("signed-jwt-token"));
+
     }
-
-
-
 
 
 }

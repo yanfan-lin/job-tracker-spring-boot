@@ -1,18 +1,30 @@
 package com.yanfan.jobtracker.dto;
 
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
-// request DTO use when partially updating an existing job application
-// ALL fields are optional
+// Accept optional fields for partially updating a job application
 public class JobApplicationPatchRequest {
 
+    @Pattern(
+            regexp = ".*\\S.*",
+            message = "Company must not be blank"
+    )
+    @Size(max = 255, message = "Company must not exceed 255 characters")
     private String company;
 
+
+    @Pattern(
+            regexp = ".*\\S.*",
+            message = "Title must not be blank"
+    )
+    @Size(max = 255, message = "Title must not exceed 255 characters")
     private String title;
 
-    // if provided, status must be valid
+
+    // Validate status only when it is provided
     @Pattern(
             regexp = "applied|interview|offer|rejected",
             message = "Status must be one of: applied, interview, offer, rejected"
@@ -23,7 +35,7 @@ public class JobApplicationPatchRequest {
 
     private String notes;
 
-    // required by Jackson so Spring can convert JSON into this DTO
+    // Allow Jackson to convert JSON into this DTO
     public JobApplicationPatchRequest() {
 
     }

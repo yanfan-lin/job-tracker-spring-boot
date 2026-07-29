@@ -17,13 +17,13 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-// tests real JWT signing and decoding
+// Test real JWT signing and decoding
 class JwtServiceTest {
 
     @Test
     void generateToken_shouldCreateSignedTokenWithExpectedClaims() {
 
-        // fixed 32-byte key only for testing
+        // Use a fixed 32-byte key only for testing
         String testSecret = Base64.getEncoder().encodeToString(
                 "0123456789abcdef0123456789abcdef"
                         .getBytes(StandardCharsets.UTF_8)
@@ -53,7 +53,8 @@ class JwtServiceTest {
 
         Number userIdClaim = decodedToken.getClaim("userId");
 
-        assert userIdClaim != null;
+        // Confirm the decoded token contains the expected user ID claim
+        assertThat(userIdClaim).isNotNull();
         assertThat(userIdClaim.longValue())
                 .isEqualTo(42L);
 
@@ -62,12 +63,11 @@ class JwtServiceTest {
         assertThat(decodedToken.getExpiresAt())
                 .isNotNull();
 
-        assert decodedToken.getIssuedAt() != null;
+        // Confirm the token lifetime matches the configured expiration
         assertThat(Duration.between(
                 decodedToken.getIssuedAt(),
                 decodedToken.getExpiresAt()).getSeconds())
                 .isEqualTo(3600);
-
 
     }
 
