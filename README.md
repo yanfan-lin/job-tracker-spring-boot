@@ -24,23 +24,12 @@ practical authentication, authorization, persistence, validation, testing, and c
 
 ## Tech Stack
 
-- Java 21
-- Spring Boot 4.1
-- Spring Web MVC
-- Spring Data JPA / Hibernate
-- PostgreSQL
-- Spring Security
-- Spring OAuth2 Resource Server
-- BCrypt password hashing
-- Spring Boot Actuator
-- Springdoc OpenAPI / Swagger UI
-- Docker / Docker Compose
-- JUnit Jupiter
-- Mockito
-- AssertJ
-- MockMvc
-- Maven Wrapper
-- GitHub Actions CI
+- **Language & Framework:** Java 21, Spring Boot 4, Spring Web MVC
+- **Security & Validation:** Spring Security, OAuth2 Resource Server, JWT, BCrypt, Jakarta Validation
+- **Persistence:** Spring Data JPA, Hibernate, PostgreSQL
+- **Testing:** JUnit 5, Mockito, AssertJ, MockMvc, H2
+- **API Documentation & Health:** Springdoc OpenAPI, Spring Boot Actuator
+- **Build & DevOps:** Maven, Docker, Docker Compose, GitHub Actions
 
 ## Project Structure
 
@@ -204,8 +193,18 @@ export JWT_SECRET="$(openssl rand -base64 32)"
 | `DATABASE_PASSWORD` | `postgres` | Your local PostgreSQL password |
 | `JWT_SECRET` | Passed through from the host | Set in the shell that starts the application |
 
-`JWT_SECRET` must be Base64 encoded and decode to at least 32 bytes. Hibernate currently uses
-`spring.jpa.hibernate.ddl-auto=update`, and Open Session in View is disabled.
+`JWT_SECRET` must be Base64 encoded and decode to at least 32 bytes. For local development, Hibernate currently uses
+`spring.jpa.hibernate.ddl-auto=update`, and `spring.jpa.show-sql=true` prints generated SQL. These settings support
+development and are not presented as production recommendations. Open Session in View is disabled.
+
+### Database schema
+
+- `app_users` stores registered users. Email addresses are unique, and `password_hash` stores the BCrypt hash rather
+  than the raw password.
+- `job_applications` has a mandatory `user_id` foreign key, so every application belongs to one registered user.
+- Both entities maintain `created_at` and `updated_at` timestamps through JPA lifecycle callbacks.
+
+PostgreSQL is the running application's database. H2 is used only for JPA repository integration tests.
 
 ## Authentication
 
@@ -299,7 +298,16 @@ Springdoc generates:
 - Swagger UI: http://localhost:8080/swagger-ui/index.html
 - OpenAPI JSON: http://localhost:8080/v3/api-docs
 
-Both routes currently require bearer authentication under `SecurityConfig`.
+Swagger UI, the OpenAPI document, and their supporting resources require JWT bearer authentication under
+`SecurityConfig`; they are not anonymously accessible. The API is stateless and has no browser login session, and this
+project does not configure an interactive Swagger login or bearer-token authorization workflow.
+
+After logging in through `POST /auth/login`, the OpenAPI JSON can be requested with the returned token:
+
+```bash
+curl "http://localhost:8080/v3/api-docs" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+```
 
 ## Health Check
 
@@ -424,6 +432,10 @@ curl -i -X POST "http://localhost:8080/applications" \
   }'
 ```
 
+`POST /applications` requires `company`, `title`, `status`, and `dateApplied`; `notes` is optional. Company and title
+must not be blank and must not exceed 255 characters. Status must be one of `applied`, `interview`, `offer`, or
+`rejected`.
+
 ### Update an owned application
 
 ```bash
@@ -436,7 +448,9 @@ curl -i -X PATCH "http://localhost:8080/applications/1" \
   }'
 ```
 
-All PATCH fields are optional. If supplied, `status` must be one of the supported values.
+All PATCH fields may be omitted. When supplied, company and title must not be blank and must not exceed 255
+characters, while status must be one of `applied`, `interview`, `offer`, or `rejected`. `dateApplied` and `notes`
+remain optional.
 
 ### Delete an owned application
 
@@ -520,27 +534,27 @@ format rather than the global exception-handler format.
 
 ## Run Tests
 
-The automated test suite includes:
+The project currently has 58 passing tests. The automated test suite includes:
 
-- Registration and login controller and service tests
-- Password-hashing and credential-checking behavior tests
+- JWT configuration and required-claim validation tests
 - Real JWT signing and decoding tests
-- JWT required-claim validation tests
-- Spring Security route-access tests
-- Ownership-scoped controller, service, and repository integration tests
-- H2-backed JPA tests for real ownership-scoped repository queries
-- Request validation and error-response tests
+- Authentication controller, service, and endpoint-security tests
+- Job application controller, service, and endpoint-security tests
+- H2-backed JPA repository integration tests for real ownership-scoped queries
+- Request-validation and error-response tests, including regression coverage for blank and overlong application fields
 
-Run the tests on Windows:
+PostgreSQL remains the application database; H2 is used only by the repository integration tests.
+
+Run a fresh build and test suite on Windows:
 
 ```powershell
-.\mvnw.cmd test
+.\mvnw.cmd clean test
 ```
 
-Run the tests on macOS/Linux:
+Run a fresh build and test suite on macOS/Linux:
 
 ```bash
-./mvnw test
+./mvnw clean test
 ```
 
 ## CI

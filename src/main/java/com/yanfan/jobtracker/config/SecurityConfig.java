@@ -1,5 +1,6 @@
 package com.yanfan.jobtracker.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,6 +18,15 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final boolean swaggerPublic;
+
+    // Constructor injection
+    public SecurityConfig(
+            @Value("${app.swagger.public:false}") boolean swaggerPublic
+    ) {
+        this.swaggerPublic = swaggerPublic;
+    }
+
     // Define public routes and enable JWT bearer authentication
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -30,21 +40,32 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                .authorizeHttpRequests(auth -> auth
-                        // User registration and login are public
-                        .requestMatchers(HttpMethod.POST,
-                                "/auth/register",
-                                "/auth/login"
-                        ).permitAll()
+                .authorizeHttpRequests(auth -> {
+                    // User registration and login are public
+                    auth.requestMatchers(
+                            HttpMethod.POST,
+                            "/auth/register",
+                            "/auth/login"
+                    ).permitAll();
 
-                        // All job application endpoints require authentication
-                        .requestMatchers(
-                                "/applications",
-                                "/applications/**"
-                        ).authenticated()
+                    // Allow Swagger access only when enabled for the current environment
+                    if (swaggerPublic) {
+                        auth.requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**"
+                        ).permitAll();
+                    }
 
-                        .anyRequest().authenticated()
-                )
+                    // All job application endpoints require authentication
+                    auth.requestMatchers(
+                            "/applications",
+                            "/applications/**"
+                    ).authenticated();
+
+                    auth.anyRequest().authenticated();
+                })
 
                 // Read and validate bearer tokens from the Authorization header
                 .oauth2ResourceServer(oauth2 -> oauth2

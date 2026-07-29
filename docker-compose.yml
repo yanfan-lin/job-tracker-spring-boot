@@ -34,6 +34,7 @@ services:
 
       # Require the JWT secret from the host environment
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set before starting Docker Compose}
+      SWAGGER_PUBLIC: "${SWAGGER_PUBLIC:-true}"
 
     ports:
       - "8080:8080"

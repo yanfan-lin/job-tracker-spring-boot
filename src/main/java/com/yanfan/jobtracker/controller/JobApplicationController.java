@@ -4,6 +4,7 @@ import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
 import com.yanfan.jobtracker.dto.JobApplicationRequest;
 import com.yanfan.jobtracker.dto.JobApplicationResponse;
 import com.yanfan.jobtracker.service.JobApplicationService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 // Handle authenticated job application requests
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/applications")
 public class JobApplicationController {
