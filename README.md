@@ -6,9 +6,12 @@
 
 ## Project Overview
 
-Job Tracker is a Spring Boot REST API with registration, login, signed JWT access tokens, and job applications scoped
-to the authenticated owner. It is an interview-defensible early-career backend portfolio project demonstrating
-practical authentication, authorization, persistence, validation, testing, and containerized local development.
+Job Tracker is a Spring Boot REST API with registration, login, signed JWT, and job applications
+scoped to the authenticated owner. It demonstrates production-style authentication, authorization, persistence,
+validation, testing, and containerized local development.
+
+This is the Java/Spring Boot re-architecture of an earlier [FastAPI version](https://github.com/yanfan-lin/job-tracker-API),
+rebuilt to apply enterprise-grade security, layered design, and deeper test coverage in the Java ecosystem.
 
 ## Features
 
@@ -20,7 +23,7 @@ practical authentication, authorization, persistence, validation, testing, and c
 - PostgreSQL persistence through Spring Data JPA
 - Configurable local Swagger/OpenAPI access with bearer-token authorization
 - Docker Compose for the API and database
-- Automated tests and GitHub Actions CI
+- 63 automated tests across API, service, security, and persistence layers, with GitHub Actions CI
 
 ## Tech Stack
 
