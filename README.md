@@ -155,25 +155,26 @@ To stop the containers and remove the local database volume:
 docker compose down -v
 ```
 
-### 4. Run locally without Docker
+### 4. Run the API locally against the Docker PostgreSQL
 
-Create a local PostgreSQL database:
+Start the PostgreSQL container first; it creates the `job_tracker` database automatically:
 
-```sql
-CREATE DATABASE job_tracker;
+```bash
+docker compose up -d db
 ```
 
-Set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `JWT_SECRET`. The database properties have local
-fallback values, but `JWT_SECRET` is required and must meet the Base64 and 32-byte decoded-length requirements above.
+Set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `JWT_SECRET`. The database properties default to
+the Docker Compose database (`localhost:5433`, `postgres`/`postgres`), but `JWT_SECRET` is required and must meet the
+Base64 and 32-byte decoded-length requirements above.
 `SWAGGER_PUBLIC` is optional; set it to `true` for anonymous local documentation access. Omitting it leaves Swagger
 protected and does not prevent the API from running.
 
 #### Windows PowerShell
 
 ```powershell
-$env:DATABASE_URL = "jdbc:postgresql://localhost:5432/job_tracker"
+$env:DATABASE_URL = "jdbc:postgresql://localhost:5433/job_tracker"
 $env:DATABASE_USERNAME = "postgres"
-$env:DATABASE_PASSWORD = "your_local_postgres_password"
+$env:DATABASE_PASSWORD = "postgres"
 
 $secretBytes = New-Object byte[] 32
 $random = [System.Security.Cryptography.RandomNumberGenerator]::Create()
@@ -188,9 +189,9 @@ $env:SWAGGER_PUBLIC = "true"
 #### macOS/Linux shell
 
 ```bash
-export DATABASE_URL="jdbc:postgresql://localhost:5432/job_tracker"
+export DATABASE_URL="jdbc:postgresql://localhost:5433/job_tracker"
 export DATABASE_USERNAME="postgres"
-export DATABASE_PASSWORD="your_local_postgres_password"
+export DATABASE_PASSWORD="postgres"
 export JWT_SECRET="$(openssl rand -base64 32)"
 export SWAGGER_PUBLIC=true
 
@@ -199,11 +200,11 @@ export SWAGGER_PUBLIC=true
 
 ## Environment and Database Configuration
 
-| Variable | Docker Compose | Local non-Docker | Purpose |
-|----------|----------------|------------------|---------|
-| `DATABASE_URL` | `jdbc:postgresql://db:5432/job_tracker` | `jdbc:postgresql://localhost:5432/job_tracker` | PostgreSQL connection URL |
-| `DATABASE_USERNAME` | `postgres` | Your local PostgreSQL username | PostgreSQL username |
-| `DATABASE_PASSWORD` | `postgres` | Your local PostgreSQL password | PostgreSQL password |
+| Variable | Docker Compose | Local (Docker DB) | Purpose |
+|----------|----------------|-------------------|---------|
+| `DATABASE_URL` | `jdbc:postgresql://db:5432/job_tracker` | `jdbc:postgresql://localhost:5433/job_tracker` | PostgreSQL connection URL |
+| `DATABASE_USERNAME` | `postgres` | `postgres` | PostgreSQL username |
+| `DATABASE_PASSWORD` | `postgres` | `postgres` | PostgreSQL password |
 | `JWT_SECRET` | Passed through from the host | Set in the shell that starts the application | Base64-encoded JWT signing secret |
 | `SWAGGER_PUBLIC` | `true` for local development unless overridden | `false` unless explicitly enabled | Control anonymous access to Swagger UI and OpenAPI documentation |
 
