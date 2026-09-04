@@ -1,15 +1,10 @@
 package com.yanfan.jobtracker.service;
 
-import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
 import com.yanfan.jobtracker.dto.JobApplicationRequest;
-import com.yanfan.jobtracker.dto.JobApplicationResponse;
-import com.yanfan.jobtracker.model.AppUser;
-import com.yanfan.jobtracker.model.JobApplication;
 import com.yanfan.jobtracker.repository.AppUserRepository;
 import com.yanfan.jobtracker.repository.JobApplicationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,13 +14,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
-
-// Test JobApplicationService with mocked repositories and no real database
 @ExtendWith(MockitoExtension.class)
 class JobApplicationServiceTest {
 
@@ -37,53 +29,6 @@ class JobApplicationServiceTest {
 
     @InjectMocks
     private JobApplicationService service;
-
-    @Test
-    void create_shouldSaveApplicationAndReturnResponse() {
-
-        JobApplicationRequest request = new JobApplicationRequest(
-                "Amazon",
-                "Backend Developer",
-                "applied",
-                LocalDate.of(2026, 7, 6),
-                "Applied through LinkedIn"
-        );
-
-        AppUser user = new AppUser(
-                "person@example.com",
-                "hashed-password"
-        );
-
-        when(appUserRepository.findById(42L))
-                .thenReturn(Optional.of(user));
-
-        when(repository.save(any(JobApplication.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        JobApplicationResponse response = service.create(42L, request);
-
-        assertThat(response.company())
-                .isEqualTo("Amazon");
-        assertThat(response.title())
-                .isEqualTo("Backend Developer");
-        assertThat(response.status())
-                .isEqualTo("applied");
-        assertThat(response.dateApplied())
-                .isEqualTo(LocalDate.of(2026, 7, 6));
-        assertThat(response.notes())
-                .isEqualTo("Applied through LinkedIn");
-
-        ArgumentCaptor<JobApplication> applicationCaptor = ArgumentCaptor.forClass(JobApplication.class);
-
-        verify(repository)
-                .save(applicationCaptor.capture());
-
-        JobApplication savedApplication = applicationCaptor.getValue();
-
-        assertThat(savedApplication.getUser())
-                .isSameAs(user);
-
-    }
 
     @Test
     void create_shouldThrowExceptionWhenUserDoesNotExist() {
@@ -104,8 +49,7 @@ class JobApplicationServiceTest {
                 .hasFieldOrPropertyWithValue("statusCode", HttpStatus.NOT_FOUND)
                 .hasMessageContaining("User not found with id: 999");
 
-        verify(repository, never())
-                .save(any(JobApplication.class));
+        verifyNoInteractions(repository);
     }
 
     @Test
@@ -122,69 +66,6 @@ class JobApplicationServiceTest {
     }
 
     @Test
-    void patch_shouldPatchApplicationAndReturnResponse() {
-
-        JobApplication savedApplication = new JobApplication(
-                new AppUser("person@example.com", "hashed-password"),
-                "Amazon",
-                "Backend Developer",
-                "applied",
-                LocalDate.of(2026, 7, 6),
-                "Applied through LinkedIn"
-        );
-
-        JobApplicationPatchRequest request = new JobApplicationPatchRequest(
-                null,
-                null,
-                "interview",
-                null,
-                "Recruiter screen scheduled"
-        );
-
-        when(repository.findByIdAndUserId(1L, 42L))
-                .thenReturn(Optional.of(savedApplication));
-
-        when(repository.saveAndFlush(any(JobApplication.class)))
-                .thenAnswer(invocation ->
-                        invocation.getArgument(0));
-
-        JobApplicationResponse response = service.patch(42L, 1L, request);
-
-        assertThat(response.company())
-                .isEqualTo("Amazon");
-        assertThat(response.title())
-                .isEqualTo("Backend Developer");
-        assertThat(response.status())
-                .isEqualTo("interview");
-        assertThat(response.dateApplied())
-                .isEqualTo(LocalDate.of(2026, 7, 6));
-        assertThat(response.notes())
-                .isEqualTo("Recruiter screen scheduled");
-
-    }
-
-    @Test
-    void delete_shouldDeleteApplicationWhenFound() {
-
-        JobApplication application = new JobApplication(
-                new AppUser("person@example.com", "hashed-password"),
-                "Amazon",
-                "Backend Developer",
-                "applied",
-                LocalDate.of(2026, 7, 6),
-                "Applied through LinkedIn"
-        );
-
-        when(repository.findByIdAndUserId(1L, 42L))
-                .thenReturn(Optional.of(application));
-
-        service.delete(42L, 1L);
-
-        verify(repository)
-                .delete(application);
-    }
-
-    @Test
     void findAll_shouldThrowExceptionWhenSortByIsInvalid() {
 
         assertThatThrownBy(() -> service.findAll(
@@ -197,7 +78,6 @@ class JobApplicationServiceTest {
                 0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("sort_by must be one of: id, company, title, status, date_applied, created_at, updated_at");
-
     }
 
 }

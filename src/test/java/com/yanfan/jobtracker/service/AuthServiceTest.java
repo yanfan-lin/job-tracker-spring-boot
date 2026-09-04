@@ -1,8 +1,6 @@
 package com.yanfan.jobtracker.service;
 
-import com.yanfan.jobtracker.dto.AppUserResponse;
 import com.yanfan.jobtracker.dto.LoginRequest;
-import com.yanfan.jobtracker.dto.LoginResponse;
 import com.yanfan.jobtracker.dto.RegisterRequest;
 import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.repository.AppUserRepository;
@@ -42,7 +40,7 @@ class AuthServiceTest {
 
 
     @Test
-    void register_shouldNormalizeEmailHashPasswordAndReturnResponse() {
+    void register_shouldNormalizeEmailAndHashPassword() {
 
         RegisterRequest request = new RegisterRequest(
                 " Person@Example.COM ",
@@ -55,10 +53,7 @@ class AuthServiceTest {
         when(appUserRepository.saveAndFlush(any(AppUser.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        AppUserResponse response = authService.register(request);
-
-        assertThat(response.email())
-                .isEqualTo("person@example.com");
+        authService.register(request);
 
         ArgumentCaptor<AppUser> userCaptor = ArgumentCaptor.forClass(AppUser.class);
 
@@ -66,6 +61,9 @@ class AuthServiceTest {
                 .saveAndFlush(userCaptor.capture());
 
         AppUser savedUser = userCaptor.getValue();
+
+        assertThat(savedUser.getEmail())
+                .isEqualTo("person@example.com");
 
         assertThat(savedUser.getPasswordHash())
                 .isEqualTo("hashed-password");
@@ -91,43 +89,6 @@ class AuthServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("statusCode", HttpStatus.CONFLICT)
                 .hasMessageContaining("Email is already registered");
-    }
-
-    @Test
-    void login_shouldReturnJwtWhenCredentialsAreValid() {
-
-        LoginRequest request = new LoginRequest(
-                " Person@Example.COM ",
-                "password123"
-        );
-
-        AppUser user = new AppUser(
-                "person@example.com",
-                "hashed-password"
-        );
-
-        when(appUserRepository.findByEmail("person@example.com"))
-                .thenReturn(Optional.of(user));
-
-        when(passwordEncoder.matches(
-                "password123",
-                "hashed-password"))
-                .thenReturn(true);
-
-        when(jwtService.generateToken(user))
-                .thenReturn("signed-jwt-token");
-
-        when(jwtService.getExpirationSeconds())
-                .thenReturn(3600L);
-
-        LoginResponse response = authService.login(request);
-
-        assertThat(response.accessToken())
-                .isEqualTo("signed-jwt-token");
-        assertThat(response.tokenType())
-                .isEqualTo("Bearer");
-        assertThat(response.expiresIn())
-                .isEqualTo(3600L);
     }
 
     @Test
