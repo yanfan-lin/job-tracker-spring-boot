@@ -4,8 +4,6 @@ import com.yanfan.jobtracker.dto.AppUserResponse;
 import com.yanfan.jobtracker.dto.LoginRequest;
 import com.yanfan.jobtracker.dto.LoginResponse;
 import com.yanfan.jobtracker.dto.RegisterRequest;
-import com.yanfan.jobtracker.exception.DuplicateEmailException;
-import com.yanfan.jobtracker.exception.InvalidCredentialsException;
 import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.repository.AppUserRepository;
 import org.junit.jupiter.api.Test;
@@ -15,7 +13,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -72,7 +72,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void register_shouldConvertDatabaseConflictToDuplicateEmailException() {
+    void register_shouldReturnConflictWhenEmailAlreadyExists() {
 
         RegisterRequest request = new RegisterRequest(
                 "Person@Example.COM",
@@ -88,8 +88,9 @@ class AuthServiceTest {
                 ));
 
         assertThatThrownBy(() -> authService.register(request))
-                .isInstanceOf(DuplicateEmailException.class)
-                .hasMessage("Email is already registered");
+                .isInstanceOf(ResponseStatusException.class)
+                .hasFieldOrPropertyWithValue("statusCode", HttpStatus.CONFLICT)
+                .hasMessageContaining("Email is already registered");
     }
 
     @Test
@@ -141,8 +142,9 @@ class AuthServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(InvalidCredentialsException.class)
-                .hasMessage("Invalid email or password");
+                .isInstanceOf(ResponseStatusException.class)
+                .hasFieldOrPropertyWithValue("statusCode", HttpStatus.UNAUTHORIZED)
+                .hasMessageContaining("Invalid email or password");
 
         verifyNoInteractions(passwordEncoder, jwtService);
     }
@@ -169,8 +171,9 @@ class AuthServiceTest {
                 .thenReturn(false);
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(InvalidCredentialsException.class)
-                .hasMessage("Invalid email or password");
+                .isInstanceOf(ResponseStatusException.class)
+                .hasFieldOrPropertyWithValue("statusCode", HttpStatus.UNAUTHORIZED)
+                .hasMessageContaining("Invalid email or password");
 
         verifyNoInteractions(jwtService);
     }

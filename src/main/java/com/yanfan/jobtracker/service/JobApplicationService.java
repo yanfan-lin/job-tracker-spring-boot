@@ -3,7 +3,6 @@ package com.yanfan.jobtracker.service;
 import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
 import com.yanfan.jobtracker.dto.JobApplicationRequest;
 import com.yanfan.jobtracker.dto.JobApplicationResponse;
-import com.yanfan.jobtracker.exception.ResourceNotFoundException;
 import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.model.JobApplication;
 import com.yanfan.jobtracker.repository.AppUserRepository;
@@ -11,9 +10,11 @@ import com.yanfan.jobtracker.repository.JobApplicationRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -40,17 +41,16 @@ public class JobApplicationService {
     {
         // Load the user before creating the ownership relationship
         AppUser user = appUserRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "User not found with id: " + userId
-                ));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found with id: " + userId));
 
         JobApplication application = new JobApplication(
                 request.company(),
                 request.title(),
                 request.status(),
                 request.dateApplied(),
-                request.notes()
-        );
+                request.notes());
 
         application.assignToUser(user);
 
@@ -128,7 +128,8 @@ public class JobApplicationService {
     private JobApplication findOwnedApplication(Long userId, Long applicationId) {
 
         return repository.findByIdAndUserId(applicationId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
                         "Job application not found with id: " + applicationId));
     }
 

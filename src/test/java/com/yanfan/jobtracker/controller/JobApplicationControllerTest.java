@@ -3,17 +3,18 @@ package com.yanfan.jobtracker.controller;
 import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
 import com.yanfan.jobtracker.dto.JobApplicationRequest;
 import com.yanfan.jobtracker.dto.JobApplicationResponse;
-import com.yanfan.jobtracker.exception.ResourceNotFoundException;
 import com.yanfan.jobtracker.service.JobApplicationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -114,7 +115,9 @@ class JobApplicationControllerTest {
     void findById_shouldReturnNotFoundWhenApplicationDoesNotExist() throws Exception {
 
         when(service.findById(42L, 999L))
-                .thenThrow(new ResourceNotFoundException("Job application not found with id: 999"));
+                .thenThrow(new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Job application not found with id: 999"));
 
         mockMvc.perform(get("/applications/999")
                         .principal(createAuthentication()))

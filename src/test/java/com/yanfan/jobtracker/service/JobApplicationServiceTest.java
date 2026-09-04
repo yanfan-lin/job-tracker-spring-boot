@@ -3,7 +3,6 @@ package com.yanfan.jobtracker.service;
 import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
 import com.yanfan.jobtracker.dto.JobApplicationRequest;
 import com.yanfan.jobtracker.dto.JobApplicationResponse;
-import com.yanfan.jobtracker.exception.ResourceNotFoundException;
 import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.model.JobApplication;
 import com.yanfan.jobtracker.repository.AppUserRepository;
@@ -14,6 +13,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -99,8 +100,9 @@ class JobApplicationServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.create(999L, request))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("User not found with id: 999");
+                .isInstanceOf(ResponseStatusException.class)
+                .hasFieldOrPropertyWithValue("statusCode", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("User not found with id: 999");
 
         verify(repository, never())
                 .save(any(JobApplication.class));
@@ -113,8 +115,9 @@ class JobApplicationServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.findById(42L, 999L))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Job application not found with id: 999");
+                .isInstanceOf(ResponseStatusException.class)
+                .hasFieldOrPropertyWithValue("statusCode", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("Job application not found with id: 999");
 
     }
 

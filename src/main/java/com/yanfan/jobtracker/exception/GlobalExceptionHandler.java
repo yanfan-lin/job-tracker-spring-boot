@@ -6,40 +6,25 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-// Handle application errors and return consistent API responses
+// Handles application errors and returns consistent API responses.
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException e) {
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException e) {
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(buildErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                "Not Found",
-                e.getMessage()));
-    }
+        HttpStatus status = HttpStatus.valueOf(e.getStatusCode().value());
 
-    @ExceptionHandler(DuplicateEmailException.class)
-    public ResponseEntity<Map<String, Object>> handleDuplicateEmail(DuplicateEmailException e) {
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(buildErrorResponse(
-                HttpStatus.CONFLICT.value(),
-                "Conflict",
-                e.getMessage()));
-    }
-
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidCredentials(InvalidCredentialsException e) {
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(buildErrorResponse(
-                HttpStatus.UNAUTHORIZED.value(),
-                "Unauthorized",
-                e.getMessage()));
+        return ResponseEntity.status(status).body(buildErrorResponse(
+                status.value(),
+                status.getReasonPhrase(),
+                e.getReason()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

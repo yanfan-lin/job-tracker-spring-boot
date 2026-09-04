@@ -4,17 +4,17 @@ import com.yanfan.jobtracker.dto.AppUserResponse;
 import com.yanfan.jobtracker.dto.LoginRequest;
 import com.yanfan.jobtracker.dto.LoginResponse;
 import com.yanfan.jobtracker.dto.RegisterRequest;
-import com.yanfan.jobtracker.exception.DuplicateEmailException;
-import com.yanfan.jobtracker.exception.InvalidCredentialsException;
 import com.yanfan.jobtracker.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 
@@ -103,9 +103,9 @@ class AuthControllerTest {
                 """;
 
         when(authService.register(any(RegisterRequest.class)))
-                .thenThrow(new DuplicateEmailException(
-                        "Email is already registered"
-                ));
+                .thenThrow(new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Email is already registered"));
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -211,9 +211,9 @@ class AuthControllerTest {
                 """;
 
         when(authService.login(any(LoginRequest.class)))
-                .thenThrow(new InvalidCredentialsException(
-                        "Invalid email or password"
-                ));
+                .thenThrow(new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Invalid email or password"));
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

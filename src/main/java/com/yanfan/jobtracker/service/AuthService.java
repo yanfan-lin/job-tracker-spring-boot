@@ -4,17 +4,18 @@ import com.yanfan.jobtracker.dto.AppUserResponse;
 import com.yanfan.jobtracker.dto.LoginRequest;
 import com.yanfan.jobtracker.dto.LoginResponse;
 import com.yanfan.jobtracker.dto.RegisterRequest;
-import com.yanfan.jobtracker.exception.DuplicateEmailException;
-import com.yanfan.jobtracker.exception.InvalidCredentialsException;
 import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.repository.AppUserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Locale;
 
+// Handles user registration and login.
 @Service
 public class AuthService {
 
@@ -48,7 +49,10 @@ public class AuthService {
             return mapToResponse(appUserRepository.saveAndFlush(user));
         }
         catch (DataIntegrityViolationException e) {
-            throw new DuplicateEmailException("Email is already registered");
+
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Email is already registered");
         }
     }
 
@@ -57,20 +61,23 @@ public class AuthService {
 
         AppUser user = appUserRepository.findByEmail(normalizeEmail(request.email()))
                 .orElseThrow(() ->
-                        new InvalidCredentialsException(INVALID_CREDENTIALS_MESSAGE));
+                        new ResponseStatusException(
+                                HttpStatus.UNAUTHORIZED,
+                                INVALID_CREDENTIALS_MESSAGE));
 
         if (!passwordEncoder.matches(
                 request.password(),
                 user.getPasswordHash()))
         {
-            throw new InvalidCredentialsException(INVALID_CREDENTIALS_MESSAGE);
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    INVALID_CREDENTIALS_MESSAGE);
         }
 
         return new LoginResponse(
                 jwtService.generateToken(user),
                 "Bearer",
-                jwtService.getExpirationSeconds()
-        );
+                jwtService.getExpirationSeconds());
     }
 
     private AppUserResponse mapToResponse(AppUser user) {
@@ -78,8 +85,7 @@ public class AuthService {
         return new AppUserResponse(
                 user.getId(),
                 user.getEmail(),
-                user.getCreatedAt()
-        );
+                user.getCreatedAt());
     }
 
     private String normalizeEmail(String email) {
