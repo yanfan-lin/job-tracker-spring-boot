@@ -55,12 +55,6 @@ public class SecurityConfig {
                         ).permitAll();
                     }
 
-                    // All job application endpoints require authentication
-                    auth.requestMatchers(
-                            "/applications",
-                            "/applications/**"
-                    ).authenticated();
-
                     auth.anyRequest().authenticated();
                 })
 
