@@ -7,11 +7,7 @@ import com.yanfan.jobtracker.dto.RegisterRequest;
 import com.yanfan.jobtracker.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 // Handles registration and login requests.
 @RestController
@@ -25,15 +21,16 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AppUserResponse> register(@Valid @RequestBody RegisterRequest request) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public AppUserResponse register(@Valid @RequestBody RegisterRequest request) {
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+        return authService.register(request);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
 
-        return ResponseEntity.ok(authService.login(request));
+        return authService.login(request);
     }
 
 }
