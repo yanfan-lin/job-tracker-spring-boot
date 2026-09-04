@@ -14,10 +14,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
-// Handle job application business logic and ownership checks
+// Handle job application business logic and ownership checks.
 @Service
 public class JobApplicationService {
 
@@ -75,8 +76,8 @@ public class JobApplicationService {
         Page<JobApplication> thePage =
                 repository.findWithFiltersForUser(
                         userId,
-                        normalizeFilter(status),
-                        normalizeSearch(search),
+                        StringUtils.hasText(status) ? status : null,
+                        StringUtils.hasText(search) ? search : "",
                         pageable
                 );
 
@@ -89,16 +90,9 @@ public class JobApplicationService {
     // Find an application using both its ID and the owner's user ID
     public JobApplicationResponse findById(
             Long userId,
-            Long applicationId)
-    {
-        JobApplication application = repository.findByIdAndUserId(applicationId, userId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Job application not found with id: " + applicationId
-                        )
-                );
+            Long applicationId) {
 
-        return mapToResponse(application);
+        return mapToResponse(findOwnedApplication(userId, applicationId));
     }
 
     // Update only the provided fields of an application owned by the user
@@ -108,13 +102,7 @@ public class JobApplicationService {
             Long applicationId,
             JobApplicationPatchRequest request)
     {
-        // Use both IDs so one user cannot update another user's application
-        JobApplication application = repository.findByIdAndUserId(applicationId, userId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Job application not found with id: " + applicationId
-                        )
-                );
+        JobApplication application = findOwnedApplication(userId, applicationId);
 
         if (request.getCompany() != null) {
             application.setCompany(request.getCompany());
@@ -141,17 +129,17 @@ public class JobApplicationService {
     @Transactional
     public void delete(
             Long userId,
-            Long applicationId)
-    {
-        // Use the ownership-scoped query before deleting the record
-        JobApplication application = repository.findByIdAndUserId(applicationId, userId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Job application not found with id: " + applicationId
-                        )
-                );
+            Long applicationId) {
 
-        repository.delete(application);
+        repository.delete(findOwnedApplication(userId, applicationId));
+    }
+
+    // Find an application only when it belongs to the authenticated user
+    private JobApplication findOwnedApplication(Long userId, Long applicationId) {
+
+        return repository.findByIdAndUserId(applicationId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Job application not found with id: " + applicationId));
     }
 
     // Map the entity to the DTO returned by the API
@@ -167,26 +155,6 @@ public class JobApplicationService {
                 application.getCreatedAt(),
                 application.getUpdatedAt()
         );
-    }
-
-    // Convert an empty filter to null so the repository can ignore it
-    private String normalizeFilter(String str) {
-
-        if (str == null || str.isBlank()) {
-            return null;
-        }
-
-        return str;
-    }
-
-    // Convert an empty search to an empty string so it matches all records
-    private String normalizeSearch(String search) {
-
-        if (search == null || search.isBlank()) {
-            return "";
-        }
-
-        return search;
     }
 
     // Validate pagination values and build the request sort order
