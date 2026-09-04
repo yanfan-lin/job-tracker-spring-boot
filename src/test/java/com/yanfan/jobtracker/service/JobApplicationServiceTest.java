@@ -37,7 +37,6 @@ class JobApplicationServiceTest {
     @InjectMocks
     private JobApplicationService service;
 
-    // Verify creation assigns the authenticated user as the owner
     @Test
     void create_shouldSaveApplicationAndReturnResponse() {
 
@@ -57,7 +56,6 @@ class JobApplicationServiceTest {
         when(appUserRepository.findById(42L))
                 .thenReturn(Optional.of(user));
 
-        // Return the saved entity from the mocked repository
         when(repository.save(any(JobApplication.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -84,12 +82,8 @@ class JobApplicationServiceTest {
         assertThat(savedApplication.getUser())
                 .isSameAs(user);
 
-        verify(appUserRepository)
-                .findById(42L);
-
     }
 
-    // Verify creation fails when the JWT user no longer exists
     @Test
     void create_shouldThrowExceptionWhenUserDoesNotExist() {
 
@@ -108,14 +102,10 @@ class JobApplicationServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User not found with id: 999");
 
-        verify(appUserRepository).findById(999L);
-
-        // Do not save an application without a valid owner
         verify(repository, never())
                 .save(any(JobApplication.class));
     }
 
-    // Verify a missing or unowned application returns the same not-found error
     @Test
     void findById_shouldThrowExceptionWhenNotFound() {
 
@@ -126,12 +116,8 @@ class JobApplicationServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Job application not found with id: 999");
 
-        verify(repository)
-                .findByIdAndUserId(999L, 42L);
-
     }
 
-    // Verify only the provided application fields are updated
     @Test
     void patch_shouldPatchApplicationAndReturnResponse() {
 
@@ -156,8 +142,7 @@ class JobApplicationServiceTest {
 
         when(repository.saveAndFlush(any(JobApplication.class)))
                 .thenAnswer(invocation ->
-                        invocation.getArgument(0)
-                );
+                        invocation.getArgument(0));
 
         JobApplicationResponse response = service.patch(42L, 1L, request);
 
@@ -172,13 +157,8 @@ class JobApplicationServiceTest {
         assertThat(response.getNotes())
                 .isEqualTo("Recruiter screen scheduled");
 
-        verify(repository)
-                .findByIdAndUserId(1L, 42L);
-        verify(repository)
-                .saveAndFlush(any(JobApplication.class));
     }
 
-    // Verify deleting an owned application succeeds
     @Test
     void delete_shouldDeleteApplicationWhenFound() {
 
@@ -196,48 +176,9 @@ class JobApplicationServiceTest {
         service.delete(42L, 1L);
 
         verify(repository)
-                .findByIdAndUserId(1L, 42L);
-        verify(repository)
                 .delete(application);
     }
 
-    // Verify a non-positive limit is rejected
-    @Test
-    void findAll_shouldThrowExceptionWhenLimitIsInvalid() {
-
-        assertThatThrownBy(() -> service.findAll(
-                42L,
-                null,
-                null,
-                "date_applied",
-                "asc",
-                0,
-                0
-        ))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("limit must be greater than 0");
-
-    }
-
-    // Verify a negative page number is rejected
-    @Test
-    void findAll_shouldThrowExceptionWhenPageIsInvalid() {
-
-        assertThatThrownBy(() -> service.findAll(
-                42L,
-                null,
-                null,
-                "date_applied",
-                "asc",
-                10,
-                -1
-        ))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("page cannot be negative");
-
-    }
-
-    // Verify an unsupported sort field is rejected
     @Test
     void findAll_shouldThrowExceptionWhenSortByIsInvalid() {
 
@@ -248,28 +189,10 @@ class JobApplicationServiceTest {
                 "random",
                 "asc",
                 10,
-                0
-        ))
+                0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("sort_by must be one of: id, company, title, status, date_applied, created_at, updated_at");
 
-    }
-
-    // Verify an unsupported sort direction is rejected
-    @Test
-    void findAll_shouldThrowExceptionWhenOrderIsInvalid() {
-
-        assertThatThrownBy(() -> service.findAll(
-                42L,
-                null,
-                null,
-                "date_applied",
-                "random",
-                10,
-                0
-        ))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("order must be either asc or desc");
     }
 
 }

@@ -8,7 +8,6 @@ import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.model.JobApplication;
 import com.yanfan.jobtracker.repository.AppUserRepository;
 import com.yanfan.jobtracker.repository.JobApplicationRepository;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -55,9 +54,7 @@ public class JobApplicationService {
 
         application.assignToUser(user);
 
-        JobApplication savedApplication = repository.save(application);
-
-        return mapToResponse(savedApplication);
+        return mapToResponse(repository.save(application));
     }
 
     // Return only applications owned by the authenticated user
@@ -70,18 +67,13 @@ public class JobApplicationService {
             int limit,
             int page)
     {
-        Pageable pageable =
-                buildPageable(sortBy, order, limit, page);
-
-        Page<JobApplication> thePage =
-                repository.findWithFiltersForUser(
+        return repository.findWithFiltersForUser(
                         userId,
                         StringUtils.hasText(status) ? status : null,
                         StringUtils.hasText(search) ? search : "",
-                        pageable
-                );
-
-        return thePage.getContent()
+                        buildPageable(sortBy, order, limit, page)
+                )
+                .getContent()
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -120,9 +112,7 @@ public class JobApplicationService {
             application.setNotes(request.getNotes());
         }
 
-        JobApplication updatedApplication = repository.saveAndFlush(application);
-
-        return mapToResponse(updatedApplication);
+        return mapToResponse(repository.saveAndFlush(application));
     }
 
     // Delete an application only when it belongs to the authenticated user
@@ -157,22 +147,18 @@ public class JobApplicationService {
         );
     }
 
-    // Validate pagination values and build the request sort order
     private Pageable buildPageable(String sortBy, String order, int limit, int page) {
 
-        if (limit <= 0) {
-            throw new IllegalArgumentException("limit must be greater than 0");
-        }
-
-        if (page < 0) {
-            throw new IllegalArgumentException("page cannot be negative");
-        }
-
-        String sortField = mapSortField(sortBy);
-
-        Sort.Direction direction = mapSortDirection(order);
-
-        return PageRequest.of(page, limit, Sort.by(direction, sortField));
+        return PageRequest.of(
+                page,
+                limit,
+                Sort.by(
+                        StringUtils.hasText(order)
+                                ? Sort.Direction.fromString(order)
+                                : Sort.Direction.DESC,
+                        mapSortField(sortBy)
+                )
+        );
     }
 
     // Convert API sort names into Java entity field names
@@ -184,30 +170,13 @@ public class JobApplicationService {
         }
 
         return switch (sortBy) {
-            case "id" -> "id";
-            case "company" -> "company";
-            case "title" -> "title";
-            case "status" -> "status";
+            case "id", "company", "title", "status" -> sortBy;
             case "date_applied" -> "dateApplied";
             case "created_at" -> "createdAt";
             case "updated_at" -> "updatedAt";
             default -> throw new IllegalArgumentException(
                     "sort_by must be one of: id, company, title, status, date_applied, created_at, updated_at");
         };
-    }
-
-    // Convert the order parameter into Spring's sorting direction
-    private Sort.Direction mapSortDirection(String order) {
-
-        if (order == null || order.isBlank() || order.equalsIgnoreCase("desc")) {
-            return Sort.Direction.DESC;
-        }
-
-        if (order.equalsIgnoreCase("asc")) {
-            return Sort.Direction.ASC;
-        }
-
-        throw new IllegalArgumentException("order must be either asc or desc");
     }
 
 }
