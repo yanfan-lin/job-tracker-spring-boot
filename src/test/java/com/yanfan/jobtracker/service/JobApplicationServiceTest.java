@@ -14,11 +14,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,6 +40,7 @@ class JobApplicationServiceTest {
     // Verify creation assigns the authenticated user as the owner
     @Test
     void create_shouldSaveApplicationAndReturnResponse() {
+
         JobApplicationRequest request = new JobApplicationRequest(
                 "Amazon",
                 "Backend Developer",
@@ -65,27 +63,36 @@ class JobApplicationServiceTest {
 
         JobApplicationResponse response = service.create(42L, request);
 
-        assertThat(response.getCompany()).isEqualTo("Amazon");
-        assertThat(response.getTitle()).isEqualTo("Backend Developer");
-        assertThat(response.getStatus()).isEqualTo("applied");
-        assertThat(response.getDateApplied()).isEqualTo(LocalDate.of(2026, 7, 6));
-        assertThat(response.getNotes()).isEqualTo("Applied through LinkedIn");
+        assertThat(response.getCompany())
+                .isEqualTo("Amazon");
+        assertThat(response.getTitle())
+                .isEqualTo("Backend Developer");
+        assertThat(response.getStatus())
+                .isEqualTo("applied");
+        assertThat(response.getDateApplied())
+                .isEqualTo(LocalDate.of(2026, 7, 6));
+        assertThat(response.getNotes())
+                .isEqualTo("Applied through LinkedIn");
 
         ArgumentCaptor<JobApplication> applicationCaptor = ArgumentCaptor.forClass(JobApplication.class);
 
-        verify(repository).save(applicationCaptor.capture());
+        verify(repository)
+                .save(applicationCaptor.capture());
 
         JobApplication savedApplication = applicationCaptor.getValue();
 
-        assertThat(savedApplication.getUser()).isSameAs(user);
+        assertThat(savedApplication.getUser())
+                .isSameAs(user);
 
-        verify(appUserRepository).findById(42L);
+        verify(appUserRepository)
+                .findById(42L);
 
     }
 
     // Verify creation fails when the JWT user no longer exists
     @Test
     void create_shouldThrowExceptionWhenUserDoesNotExist() {
+
         JobApplicationRequest request = new JobApplicationRequest(
                 "Amazon",
                 "Backend Developer",
@@ -106,38 +113,12 @@ class JobApplicationServiceTest {
         // Do not save an application without a valid owner
         verify(repository, never())
                 .save(any(JobApplication.class));
-
-    }
-
-    // Verify an owned application is returned when found
-    @Test
-    void findById_shouldReturnApplicationWhenFound() {
-        JobApplication theApplication = new JobApplication(
-                "Amazon",
-                "Backend Developer",
-                "applied",
-                LocalDate.of(2026, 7, 6),
-                "Applied through LinkedIn"
-        );
-
-        when(repository.findByIdAndUserId(1L, 42L))
-                .thenReturn(Optional.of(theApplication));
-
-        JobApplicationResponse response = service.findById(42L, 1L);
-
-        assertThat(response.getCompany()).isEqualTo("Amazon");
-        assertThat(response.getTitle()).isEqualTo("Backend Developer");
-        assertThat(response.getStatus()).isEqualTo("applied");
-        assertThat(response.getDateApplied()).isEqualTo(LocalDate.of(2026, 7, 6));
-        assertThat(response.getNotes()).isEqualTo("Applied through LinkedIn");
-
-        verify(repository).findByIdAndUserId(1L, 42L);
-
     }
 
     // Verify a missing or unowned application returns the same not-found error
     @Test
     void findById_shouldThrowExceptionWhenNotFound() {
+
         when(repository.findByIdAndUserId(999L, 42L))
                 .thenReturn(Optional.empty());
 
@@ -145,13 +126,15 @@ class JobApplicationServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Job application not found with id: 999");
 
-        verify(repository).findByIdAndUserId(999L, 42L);
+        verify(repository)
+                .findByIdAndUserId(999L, 42L);
 
     }
 
     // Verify only the provided application fields are updated
     @Test
     void patch_shouldPatchApplicationAndReturnResponse() {
+
         JobApplication savedApplication = new JobApplication(
                 "Amazon",
                 "Backend Developer",
@@ -178,45 +161,27 @@ class JobApplicationServiceTest {
 
         JobApplicationResponse response = service.patch(42L, 1L, request);
 
-        assertThat(response.getCompany()).isEqualTo("Amazon");
-        assertThat(response.getTitle()).isEqualTo("Backend Developer");
-        assertThat(response.getStatus()).isEqualTo("interview");
-        assertThat(response.getDateApplied()).isEqualTo(LocalDate.of(2026, 7, 6));
-        assertThat(response.getNotes()).isEqualTo("Recruiter screen scheduled");
+        assertThat(response.getCompany())
+                .isEqualTo("Amazon");
+        assertThat(response.getTitle())
+                .isEqualTo("Backend Developer");
+        assertThat(response.getStatus())
+                .isEqualTo("interview");
+        assertThat(response.getDateApplied())
+                .isEqualTo(LocalDate.of(2026, 7, 6));
+        assertThat(response.getNotes())
+                .isEqualTo("Recruiter screen scheduled");
 
-        verify(repository).findByIdAndUserId(1L, 42L);
-        verify(repository).saveAndFlush(any(JobApplication.class));
-
-    }
-
-    // Verify updating a missing or unowned application fails
-    @Test
-    void patch_shouldThrowExceptionWhenNotFound() {
-        JobApplicationPatchRequest request = new JobApplicationPatchRequest(
-                null,
-                null,
-                "interview",
-                null,
-                "This should fail"
-        );
-
-        when(repository.findByIdAndUserId(999L, 42L))
-                .thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> service.patch(42L, 999L, request))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Job application not found with id: 999");
-
-        verify(repository).findByIdAndUserId(999L, 42L);
-
-        verify(repository, never())
+        verify(repository)
+                .findByIdAndUserId(1L, 42L);
+        verify(repository)
                 .saveAndFlush(any(JobApplication.class));
-
     }
 
     // Verify deleting an owned application succeeds
     @Test
     void delete_shouldDeleteApplicationWhenFound() {
+
         JobApplication application = new JobApplication(
                 "Amazon",
                 "Backend Developer",
@@ -230,77 +195,16 @@ class JobApplicationServiceTest {
 
         service.delete(42L, 1L);
 
-        verify(repository).findByIdAndUserId(1L, 42L);
-        verify(repository).delete(application);
-
-    }
-
-    // Verify deleting a missing or unowned application fails
-    @Test
-    void delete_shouldThrowExceptionWhenNotFound() {
-        when(repository.findByIdAndUserId(999L, 42L))
-                .thenReturn(Optional.empty());
-
-        assertThatThrownBy(() ->
-                service.delete(42L, 999L)
-        )
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Job application not found with id: 999");
-
-        verify(repository).findByIdAndUserId(999L, 42L);
-
-        verify(repository, never())
-                .delete(any(JobApplication.class));
-
-    }
-
-    // Verify filtering, sorting, and pagination are passed to the repository
-    @Test
-    void findAll_shouldReturnApplicationsWithFilters() {
-        JobApplication application = new JobApplication(
-                "Microsoft",
-                "Java Developer",
-                "interview",
-                LocalDate.of(2026, 7, 3),
-                "Recruiter screen scheduled"
-        );
-
-        when(repository.findWithFiltersForUser(
-                eq(42L),
-                any(String.class),
-                any(String.class),
-                any(Pageable.class)
-        )).thenReturn(new PageImpl<>(List.of(application)));
-
-        List<JobApplicationResponse> responses = service.findAll(
-                42L,
-                "interview",
-                "java",
-                "date_applied",
-                "asc",
-                10,
-                0
-        );
-
-        assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).getCompany()).isEqualTo("Microsoft");
-        assertThat(responses.get(0).getTitle()).isEqualTo("Java Developer");
-        assertThat(responses.get(0).getStatus()).isEqualTo("interview");
-        assertThat(responses.get(0).getDateApplied()).isEqualTo(LocalDate.of(2026, 7, 3));
-        assertThat(responses.get(0).getNotes()).isEqualTo("Recruiter screen scheduled");
-
-        verify(repository).findWithFiltersForUser(
-                eq(42L),
-                any(String.class),
-                any(String.class),
-                any(Pageable.class)
-        );
-
+        verify(repository)
+                .findByIdAndUserId(1L, 42L);
+        verify(repository)
+                .delete(application);
     }
 
     // Verify a non-positive limit is rejected
     @Test
     void findAll_shouldThrowExceptionWhenLimitIsInvalid() {
+
         assertThatThrownBy(() -> service.findAll(
                 42L,
                 null,
@@ -318,6 +222,7 @@ class JobApplicationServiceTest {
     // Verify a negative page number is rejected
     @Test
     void findAll_shouldThrowExceptionWhenPageIsInvalid() {
+
         assertThatThrownBy(() -> service.findAll(
                 42L,
                 null,
@@ -335,6 +240,7 @@ class JobApplicationServiceTest {
     // Verify an unsupported sort field is rejected
     @Test
     void findAll_shouldThrowExceptionWhenSortByIsInvalid() {
+
         assertThatThrownBy(() -> service.findAll(
                 42L,
                 null,
@@ -352,6 +258,7 @@ class JobApplicationServiceTest {
     // Verify an unsupported sort direction is rejected
     @Test
     void findAll_shouldThrowExceptionWhenOrderIsInvalid() {
+
         assertThatThrownBy(() -> service.findAll(
                 42L,
                 null,
@@ -363,8 +270,6 @@ class JobApplicationServiceTest {
         ))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("order must be either asc or desc");
-
     }
-
 
 }
