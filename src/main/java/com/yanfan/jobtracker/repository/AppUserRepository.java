@@ -11,7 +11,4 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     // Find a registered user by normalized email
     Optional<AppUser> findByEmail(String email);
 
-    // Check whether an email address is already registered
-    boolean existsByEmail(String email);
-
 }

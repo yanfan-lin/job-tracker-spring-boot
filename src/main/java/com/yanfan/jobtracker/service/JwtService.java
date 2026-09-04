@@ -22,8 +22,8 @@ public class JwtService {
 
     public JwtService(
             JwtEncoder jwtEncoder,
-            @Value("${app.jwt.expiration-seconds}") long expirationSeconds
-    ) {
+            @Value("${app.jwt.expiration-seconds}") long expirationSeconds)
+    {
         this.jwtEncoder = jwtEncoder;
         this.expirationSeconds = expirationSeconds;
     }
@@ -57,6 +57,5 @@ public class JwtService {
     public long getExpirationSeconds() {
         return this.expirationSeconds;
     }
-
 
 }

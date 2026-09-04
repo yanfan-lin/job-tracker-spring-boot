@@ -25,7 +25,9 @@ public class JobApplicationService {
 
     private final AppUserRepository appUserRepository;
 
-    public JobApplicationService(JobApplicationRepository repository, AppUserRepository appUserRepository) {
+    public JobApplicationService(JobApplicationRepository repository,
+                                 AppUserRepository appUserRepository)
+    {
         this.repository = repository;
         this.appUserRepository = appUserRepository;
     }
@@ -34,8 +36,8 @@ public class JobApplicationService {
     @Transactional
     public JobApplicationResponse create(
             Long userId,
-            JobApplicationRequest request
-    ) {
+            JobApplicationRequest request)
+    {
         // Load the user before creating the ownership relationship
         AppUser user = appUserRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -55,7 +57,6 @@ public class JobApplicationService {
         JobApplication savedApplication = repository.save(application);
 
         return mapToResponse(savedApplication);
-
     }
 
     // Return only applications owned by the authenticated user
@@ -66,8 +67,8 @@ public class JobApplicationService {
             String sortBy,
             String order,
             int limit,
-            int page
-    ) {
+            int page)
+    {
         Pageable pageable =
                 buildPageable(sortBy, order, limit, page);
 
@@ -83,14 +84,13 @@ public class JobApplicationService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
-
     }
 
     // Find an application using both its ID and the owner's user ID
     public JobApplicationResponse findById(
             Long userId,
-            Long applicationId
-    ) {
+            Long applicationId)
+    {
         JobApplication application = repository.findByIdAndUserId(applicationId, userId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -99,7 +99,6 @@ public class JobApplicationService {
                 );
 
         return mapToResponse(application);
-
     }
 
     // Update only the provided fields of an application owned by the user
@@ -107,8 +106,8 @@ public class JobApplicationService {
     public JobApplicationResponse patch(
             Long userId,
             Long applicationId,
-            JobApplicationPatchRequest request
-    ) {
+            JobApplicationPatchRequest request)
+    {
         // Use both IDs so one user cannot update another user's application
         JobApplication application = repository.findByIdAndUserId(applicationId, userId)
                 .orElseThrow(() ->
@@ -136,15 +135,14 @@ public class JobApplicationService {
         JobApplication updatedApplication = repository.saveAndFlush(application);
 
         return mapToResponse(updatedApplication);
-
     }
 
     // Delete an application only when it belongs to the authenticated user
     @Transactional
     public void delete(
             Long userId,
-            Long applicationId
-    ) {
+            Long applicationId)
+    {
         // Use the ownership-scoped query before deleting the record
         JobApplication application = repository.findByIdAndUserId(applicationId, userId)
                 .orElseThrow(() ->
@@ -154,11 +152,11 @@ public class JobApplicationService {
                 );
 
         repository.delete(application);
-
     }
 
     // Map the entity to the DTO returned by the API
     private JobApplicationResponse mapToResponse(JobApplication application) {
+
         return new JobApplicationResponse(
                 application.getId(),
                 application.getCompany(),
@@ -169,31 +167,31 @@ public class JobApplicationService {
                 application.getCreatedAt(),
                 application.getUpdatedAt()
         );
-
     }
 
     // Convert an empty filter to null so the repository can ignore it
     private String normalizeFilter(String str) {
+
         if (str == null || str.isBlank()) {
             return null;
         }
 
         return str;
-
     }
 
     // Convert an empty search to an empty string so it matches all records
     private String normalizeSearch(String search) {
+
         if (search == null || search.isBlank()) {
             return "";
         }
 
         return search;
-
     }
 
     // Validate pagination values and build the request sort order
     private Pageable buildPageable(String sortBy, String order, int limit, int page) {
+
         if (limit <= 0) {
             throw new IllegalArgumentException("limit must be greater than 0");
         }
@@ -203,10 +201,10 @@ public class JobApplicationService {
         }
 
         String sortField = mapSortField(sortBy);
+
         Sort.Direction direction = mapSortDirection(order);
 
         return PageRequest.of(page, limit, Sort.by(direction, sortField));
-
     }
 
     // Convert API sort names into Java entity field names
@@ -226,14 +224,13 @@ public class JobApplicationService {
             case "created_at" -> "createdAt";
             case "updated_at" -> "updatedAt";
             default -> throw new IllegalArgumentException(
-                    "sort_by must be one of: id, company, title, status, date_applied, created_at, updated_at"
-            );
+                    "sort_by must be one of: id, company, title, status, date_applied, created_at, updated_at");
         };
-
     }
 
     // Convert the order parameter into Spring's sorting direction
     private Sort.Direction mapSortDirection(String order) {
+
         if (order == null || order.isBlank() || order.equalsIgnoreCase("desc")) {
             return Sort.Direction.DESC;
         }
@@ -243,8 +240,6 @@ public class JobApplicationService {
         }
 
         throw new IllegalArgumentException("order must be either asc or desc");
-
     }
-
 
 }

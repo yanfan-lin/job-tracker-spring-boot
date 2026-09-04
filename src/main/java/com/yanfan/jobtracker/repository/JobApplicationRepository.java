@@ -30,17 +30,6 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
 
     );
 
-    // Find one application only when both the application ID and user ID match
-    @Query("""
-            SELECT j FROM JobApplication j
-            WHERE j.id = :id
-            AND j.user.id = :userId
-            """)
-    Optional<JobApplication> findByIdAndUserId(
-            @Param("id") Long id,
-            @Param("userId") Long userId
-
-    );
-
+    Optional<JobApplication> findByIdAndUserId(Long id, Long userId);
 
 }

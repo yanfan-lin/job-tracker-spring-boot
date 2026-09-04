@@ -20,14 +20,18 @@ import java.util.Locale;
 public class AuthService {
 
     private final AppUserRepository appUserRepository;
+
     private final PasswordEncoder passwordEncoder;
+
     private final JwtService jwtService;
 
     private static final String INVALID_CREDENTIALS_MESSAGE =
             "Invalid email or password";
 
-
-    public AuthService(AppUserRepository appUserRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(AppUserRepository appUserRepository,
+                       PasswordEncoder passwordEncoder,
+                       JwtService jwtService)
+    {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -39,11 +43,6 @@ public class AuthService {
 
         String normalizedEmail = normalizeEmail(request.getEmail());
 
-        // Reject registration when the normalized email already exists
-        if (appUserRepository.existsByEmail(normalizedEmail)) {
-            throw new DuplicateEmailException("Email is already registered");
-        }
-
         // Hash the raw password before storing it
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
@@ -53,12 +52,10 @@ public class AuthService {
             AppUser savedUser = appUserRepository.saveAndFlush(theUser);
 
             return mapToResponse(savedUser);
-
-        } catch (DataIntegrityViolationException e) {
-            // Handle duplicate emails that reach the database after the first check
+        }
+        catch (DataIntegrityViolationException e) {
             throw new DuplicateEmailException("Email is already registered");
         }
-
     }
 
     // Authenticate the user and return a signed JWT access token
@@ -90,7 +87,6 @@ public class AuthService {
                 "Bearer",
                 jwtService.getExpirationSeconds()
         );
-
     }
 
     // Map the entity to a response without exposing the password hash
@@ -101,7 +97,6 @@ public class AuthService {
                 user.getEmail(),
                 user.getCreatedAt()
         );
-
     }
 
     // Trim and lowercase emails so registration and login use the same format
@@ -109,6 +104,5 @@ public class AuthService {
 
         return email.trim().toLowerCase(Locale.ROOT);
     }
-
 
 }

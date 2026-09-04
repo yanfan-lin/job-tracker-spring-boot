@@ -34,8 +34,8 @@ public class JobApplicationController {
             @RequestParam(name = "sort_by", defaultValue = "date_applied") String sortBy,
             @RequestParam(defaultValue = "desc") String order,
             @RequestParam(defaultValue = "10") int limit,
-            @RequestParam(defaultValue = "0") int page
-    ) {
+            @RequestParam(defaultValue = "0") int page)
+    {
         Long userId = extractUserId(authentication);
 
         List<JobApplicationResponse> applications = service.findAll(
@@ -49,16 +49,14 @@ public class JobApplicationController {
         );
 
         return ResponseEntity.ok(applications);
-
     }
 
     // Return one application only when it belongs to the authenticated user
     @GetMapping("/{id}")
     public ResponseEntity<JobApplicationResponse> findById(
             JwtAuthenticationToken authentication,
-            @PathVariable Long id
-
-    ) {
+            @PathVariable Long id)
+    {
         Long userId = extractUserId(authentication);
 
         JobApplicationResponse theApplication = service.findById(userId, id);
@@ -71,8 +69,8 @@ public class JobApplicationController {
     @PostMapping
     public ResponseEntity<JobApplicationResponse> create(
             JwtAuthenticationToken authentication,
-            @Valid @RequestBody JobApplicationRequest request
-    ) {
+            @Valid @RequestBody JobApplicationRequest request)
+    {
         Long userId = extractUserId(authentication);
 
         JobApplicationResponse theApplication = service.create(userId, request);
@@ -86,8 +84,8 @@ public class JobApplicationController {
     public ResponseEntity<JobApplicationResponse> patch(
             JwtAuthenticationToken authentication,
             @PathVariable Long id,
-            @Valid @RequestBody JobApplicationPatchRequest request
-    ) {
+            @Valid @RequestBody JobApplicationPatchRequest request)
+    {
         Long userId = extractUserId(authentication);
 
         JobApplicationResponse updatedApplication = service.patch(userId, id, request);
@@ -99,22 +97,21 @@ public class JobApplicationController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             JwtAuthenticationToken authentication,
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id)
+    {
         Long userId = extractUserId(authentication);
 
         service.delete(userId, id);
 
         return ResponseEntity.noContent().build();
-
     }
 
     // Extract the database user ID stored in the validated JWT
     private Long extractUserId(JwtAuthenticationToken authentication) {
+
         Number userIdClaim = authentication.getToken().getClaim("userId");
 
         return userIdClaim.longValue();
     }
-
 
 }

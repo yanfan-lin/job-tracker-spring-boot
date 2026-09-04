@@ -19,16 +19,16 @@ public class SecurityConfig {
     private final boolean swaggerPublic;
 
     public SecurityConfig(
-            @Value("${app.swagger.public:false}") boolean swaggerPublic
-    ) {
+            @Value("${app.swagger.public:false}") boolean swaggerPublic)
+    {
         this.swaggerPublic = swaggerPublic;
     }
 
     // Define public routes and enable JWT bearer authentication
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
 
+        http
                 // CSRF is disabled because JWTs are sent in the Authorization header, not cookies
                 .csrf(csrf -> csrf.disable())
 
@@ -70,7 +70,6 @@ public class SecurityConfig {
                 );
 
         return http.build();
-
     }
 
     // Use BCrypt to hash and verify passwords
@@ -78,6 +77,5 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
 
 }
