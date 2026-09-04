@@ -1,6 +1,8 @@
 package com.yanfan.jobtracker.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -38,9 +40,11 @@ public class JobApplication {
     @Column(name = "date_applied", nullable = false)
     private LocalDate dateApplied;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -56,21 +60,6 @@ public class JobApplication {
         this.dateApplied = dateApplied;
         this.notes = notes;
     }
-
-    // Set creation and update timestamps before inserting the record
-    @PrePersist
-    protected void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
-    }
-
-    // Refresh the update timestamp before saving changes
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
 
     public Long getId() {
         return id;
@@ -137,6 +126,5 @@ public class JobApplication {
         this.user = user;
 
     }
-
 
 }

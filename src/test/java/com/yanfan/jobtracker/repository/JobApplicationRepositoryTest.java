@@ -5,12 +5,9 @@ import com.yanfan.jobtracker.model.JobApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,7 +22,6 @@ class JobApplicationRepositoryTest {
     private JobApplicationRepository jobApplicationRepository;
 
 
-    // Verify one user cannot retrieve another user's application by ID
     @Test
     void findByIdAndUserId_shouldNotReturnAnotherUsersApplication() {
 
@@ -40,24 +36,17 @@ class JobApplicationRepositoryTest {
                 "applied"
         );
 
-        Optional<JobApplication> ownerResult =
-                jobApplicationRepository.findByIdAndUserId(
-                        application.getId(),
-                        owner.getId()
-                );
+        assertThat(jobApplicationRepository.findByIdAndUserId(
+                application.getId(),
+                owner.getId()))
+                .isPresent();
 
-        Optional<JobApplication> otherUserResult =
-                jobApplicationRepository.findByIdAndUserId(
-                        application.getId(),
-                        otherUser.getId()
-                );
-
-        assertThat(ownerResult).isPresent();
-        assertThat(otherUserResult).isEmpty();
-
+        assertThat(jobApplicationRepository.findByIdAndUserId(
+                application.getId(),
+                otherUser.getId()))
+                .isEmpty();
     }
 
-    // Verify queries apply both filters and user ownership
     @Test
     void findWithFiltersForUser_shouldReturnOnlyMatchingOwnedApplications() {
 
@@ -89,17 +78,12 @@ class JobApplicationRepositoryTest {
                 "applied"
         );
 
-        Pageable pageable = PageRequest.of(0, 10);
-
-        Page<JobApplication> result =
-                jobApplicationRepository.findWithFiltersForUser(
+        assertThat(jobApplicationRepository.findWithFiltersForUser(
                         firstUser.getId(),
                         "applied",
                         "developer",
-                        pageable
-                );
-
-        assertThat(result.getContent())
+                        PageRequest.of(0, 10))
+                .getContent())
                 .hasSize(1)
                 .extracting(JobApplication::getCompany)
                 .containsExactly("Amazon");
@@ -108,13 +92,12 @@ class JobApplicationRepositoryTest {
 
     // Save a user so the database generates a real user ID
     private AppUser saveUser(String email) {
+
         AppUser appUser = new AppUser(
                 email,
-                "hashed-password"
-        );
+                "hashed-password");
 
         return appUserRepository.saveAndFlush(appUser);
-
     }
 
     // Save an application with a real foreign-key relationship
@@ -122,8 +105,8 @@ class JobApplicationRepositoryTest {
             AppUser owner,
             String company,
             String title,
-            String status
-    ) {
+            String status)
+    {
         JobApplication application = new JobApplication(
                 company,
                 title,
@@ -135,8 +118,6 @@ class JobApplicationRepositoryTest {
         application.assignToUser(owner);
 
         return jobApplicationRepository.saveAndFlush(application);
-
     }
-
 
 }
