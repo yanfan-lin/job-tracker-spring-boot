@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
 
-// Handle user registration and login logic
 @Service
 public class AuthService {
 
@@ -37,59 +36,43 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
-    // Register a new user with a normalized email and BCrypt password hash
     @Transactional
     public AppUserResponse register(RegisterRequest request) {
 
-        String normalizedEmail = normalizeEmail(request.getEmail());
-
-        // Hash the raw password before storing it
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
-
-        AppUser theUser = new AppUser(normalizedEmail, encodedPassword);
+        AppUser user = new AppUser(
+                normalizeEmail(request.getEmail()),
+                passwordEncoder.encode(request.getPassword())
+        );
 
         try {
-            AppUser savedUser = appUserRepository.saveAndFlush(theUser);
-
-            return mapToResponse(savedUser);
+            return mapToResponse(appUserRepository.saveAndFlush(user));
         }
         catch (DataIntegrityViolationException e) {
             throw new DuplicateEmailException("Email is already registered");
         }
     }
 
-    // Authenticate the user and return a signed JWT access token
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
 
-        String normalizedEmail = normalizeEmail(request.getEmail());
-
-        // Find the account by its normalized email
-        AppUser user = appUserRepository.findByEmail(normalizedEmail)
+        AppUser user = appUserRepository.findByEmail(normalizeEmail(request.getEmail()))
                 .orElseThrow(() ->
                         new InvalidCredentialsException(INVALID_CREDENTIALS_MESSAGE));
 
-        // Compare the submitted password with the stored BCrypt hash
-        boolean passwordMatches = passwordEncoder.matches(
+        if (!passwordEncoder.matches(
                 request.getPassword(),
-                user.getPasswordHash()
-        );
-
-        if (!passwordMatches) {
+                user.getPasswordHash()))
+        {
             throw new InvalidCredentialsException(INVALID_CREDENTIALS_MESSAGE);
         }
 
-        // Generate a signed JWT after the credentials are verified
-        String accessToken = jwtService.generateToken(user);
-
         return new LoginResponse(
-                accessToken,
+                jwtService.generateToken(user),
                 "Bearer",
                 jwtService.getExpirationSeconds()
         );
     }
 
-    // Map the entity to a response without exposing the password hash
     private AppUserResponse mapToResponse(AppUser user) {
 
         return new AppUserResponse(
@@ -99,7 +82,6 @@ public class AuthService {
         );
     }
 
-    // Trim and lowercase emails so registration and login use the same format
     private String normalizeEmail(String email) {
 
         return email.trim().toLowerCase(Locale.ROOT);

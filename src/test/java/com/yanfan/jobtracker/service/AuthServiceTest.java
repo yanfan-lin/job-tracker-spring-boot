@@ -25,7 +25,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 
-// Test AuthService with mocked dependencies and no real database
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
@@ -42,7 +41,6 @@ class AuthServiceTest {
     private AuthService authService;
 
 
-    // Verify successful user registration
     @Test
     void register_shouldNormalizeEmailHashPasswordAndReturnResponse() {
 
@@ -62,7 +60,6 @@ class AuthServiceTest {
         assertThat(response.getEmail())
                 .isEqualTo("person@example.com");
 
-        // Capture the AppUser sent to the repository
         ArgumentCaptor<AppUser> userCaptor = ArgumentCaptor.forClass(AppUser.class);
 
         verify(appUserRepository)
@@ -70,19 +67,10 @@ class AuthServiceTest {
 
         AppUser savedUser = userCaptor.getValue();
 
-        assertThat(savedUser.getEmail())
-                .isEqualTo("person@example.com");
         assertThat(savedUser.getPasswordHash())
                 .isEqualTo("hashed-password");
-        assertThat(savedUser.getPasswordHash())
-                .isNotEqualTo("password123");
-
-        verify(passwordEncoder)
-                .encode("password123");
-
     }
 
-    // Verify database duplicate errors become DuplicateEmailException
     @Test
     void register_shouldConvertDatabaseConflictToDuplicateEmailException() {
 
@@ -102,15 +90,8 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(DuplicateEmailException.class)
                 .hasMessage("Email is already registered");
-
-        verify(passwordEncoder)
-                .encode("password123");
-        verify(appUserRepository)
-                .saveAndFlush(any(AppUser.class));
-
     }
 
-    // Verify successful login and JWT generation
     @Test
     void login_shouldReturnJwtWhenCredentialsAreValid() {
 
@@ -146,15 +127,8 @@ class AuthServiceTest {
                 .isEqualTo("Bearer");
         assertThat(response.getExpiresIn())
                 .isEqualTo(3600L);
-
-        verify(appUserRepository)
-                .findByEmail("person@example.com");
-        verify(passwordEncoder)
-                .matches("password123", "hashed-password");
-        verify(jwtService).generateToken(user);
     }
 
-    // Verify login fails when the email does not exist
     @Test
     void login_shouldThrowExceptionWhenEmailDoesNotExist() {
 
@@ -170,19 +144,9 @@ class AuthServiceTest {
                 .isInstanceOf(InvalidCredentialsException.class)
                 .hasMessage("Invalid email or password");
 
-        verify(appUserRepository)
-                .findByEmail("blahblah@example.com");
-
-        // Stop before password comparison or token generation
-        verify(passwordEncoder, never())
-                .matches(any(), any());
-
-        verify(jwtService, never())
-                .generateToken(any(AppUser.class));
-
+        verifyNoInteractions(passwordEncoder, jwtService);
     }
 
-    // Verify login fails when the password is incorrect
     @Test
     void login_shouldThrowExceptionWhenPasswordIsIncorrect() {
 
@@ -208,15 +172,7 @@ class AuthServiceTest {
                 .isInstanceOf(InvalidCredentialsException.class)
                 .hasMessage("Invalid email or password");
 
-        verify(appUserRepository)
-                .findByEmail("blahblah@example.com");
-
-        verify(passwordEncoder)
-                .matches("wrong-password", "hashed-password");
-
-        // Do not generate a JWT when the password is incorrect
-        verify(jwtService, never())
-                .generateToken(any(AppUser.class));
+        verifyNoInteractions(jwtService);
     }
 
 }

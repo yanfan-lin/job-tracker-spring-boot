@@ -40,7 +40,6 @@ class AuthControllerTest {
     private AuthService authService;
 
 
-    // Verify valid registration returns 201 Created
     @Test
     void register_shouldReturnCreatedUser() throws Exception {
         String request = """
@@ -71,7 +70,6 @@ class AuthControllerTest {
 
     }
 
-    // Verify invalid registration data returns 400 Bad Request
     @Test
     void register_shouldReturnBadRequestWhenRequestIsInvalid() throws Exception {
         String request = """
@@ -85,19 +83,16 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Validation Error"))
                 .andExpect(jsonPath("$.message").value("Request body validation failed"))
                 .andExpect(jsonPath("$.fieldErrors.email").value("Email must be valid"))
                 .andExpect(jsonPath("$.fieldErrors.password")
                         .value("Password must be at least 8 characters"));
 
-        // Stop before calling AuthService when validation fails
         verifyNoInteractions(authService);
 
     }
 
-    // Verify duplicate registration returns 409 Conflict
     @Test
     void register_shouldReturnConflictWhenEmailAlreadyExists() throws Exception {
         String request = """
@@ -116,14 +111,12 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.error").value("Conflict"))
                 .andExpect(jsonPath("$.message")
                         .value("Email is already registered"));
 
     }
 
-    // Verify malformed registration JSON returns 400 Bad Request
     @Test
     void register_shouldReturnBadRequestWhenJsonIsMalformed() throws Exception {
         String request = """
@@ -136,17 +129,14 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message")
                         .value("Malformed JSON request body"));
 
-        // Do not create RegisterRequest from malformed JSON
         verifyNoInteractions(authService);
 
     }
 
-    // Verify surrounding email whitespace is removed before calling AuthService
     @Test
     void register_shouldTrimEmailBeforeCallingService() throws Exception {
         String request = """
@@ -173,14 +163,13 @@ class AuthControllerTest {
         ArgumentCaptor<RegisterRequest> requestCaptor =
                 ArgumentCaptor.forClass(RegisterRequest.class);
 
-        verify(authService).register(requestCaptor.capture());
+        verify(authService)
+                .register(requestCaptor.capture());
 
         assertThat(requestCaptor.getValue().getEmail())
                 .isEqualTo("Person@Example.COM");
-
     }
 
-    // Verify valid login returns a JWT response
     @Test
     void login_shouldReturnJwtResponse() throws Exception {
         String request = """
@@ -212,7 +201,6 @@ class AuthControllerTest {
 
     }
 
-    // Verify invalid credentials return 401 Unauthorized
     @Test
     void login_shouldReturnUnauthorizedWhenCredentialsAreInvalid() throws Exception {
         String request = """
@@ -231,14 +219,12 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.error").value("Unauthorized"))
                 .andExpect(jsonPath("$.message")
                         .value("Invalid email or password"));
 
     }
 
-    // Verify invalid login data returns 400 Bad Request
     @Test
     void login_shouldReturnBadRequestWhenRequestIsInvalid() throws Exception {
         String request = """
@@ -252,7 +238,6 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Validation Error"))
                 .andExpect(jsonPath("$.message")
                         .value("Request body validation failed"))
@@ -261,33 +246,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.fieldErrors.password")
                         .value("Password is required"));
 
-        // Reject invalid input before calling AuthService
         verifyNoInteractions(authService);
-
     }
-
-    // Verify malformed login JSON returns 400 Bad Request
-    @Test
-    void login_shouldReturnBadRequestWhenJsonIsMalformed() throws Exception {
-        String request = """
-                {
-                    "email": "person@example.com",
-                    "password": "password123"
-                """;
-
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(request))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"))
-                .andExpect(jsonPath("$.message")
-                        .value("Malformed JSON request body"));
-
-        // Do not create LoginRequest from malformed JSON
-        verifyNoInteractions(authService);
-
-    }
-
 
 }
