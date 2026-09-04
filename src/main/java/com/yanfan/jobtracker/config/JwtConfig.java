@@ -11,6 +11,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
 
+// Configures JWT signing and validation.
 @Configuration
 public class JwtConfig {
 
@@ -46,9 +47,9 @@ public class JwtConfig {
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
 
-        // Require every JWT to contain a positive numeric userId claim
-        OAuth2TokenValidator<Jwt> userIdValidator = jwt -> {
-            Object userIdClaim = jwt.getClaim("userId");
+        // Reject tokens without a positive numeric user ID.
+        OAuth2TokenValidator<Jwt> userIdValidator =
+                jwt -> {Object userIdClaim = jwt.getClaim("userId");
 
             if (!(userIdClaim instanceof Number userId) || userId.longValue() <= 0) {
 
@@ -61,7 +62,7 @@ public class JwtConfig {
             return OAuth2TokenValidatorResult.success();
         };
 
-        // Keep default timestamp checks and add the custom userId check
+        // Keep the standard time checks alongside the user ID check.
         decoder.setJwtValidator(
                 new DelegatingOAuth2TokenValidator<>(
                         JwtValidators.createDefault(),

@@ -18,7 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
-// Handle job application business logic and ownership checks.
+// Manages job applications and ownership.
 @Service
 public class JobApplicationService {
 
@@ -33,31 +33,27 @@ public class JobApplicationService {
         this.appUserRepository = appUserRepository;
     }
 
-    // Create a new application and assign it to the authenticated user
     @Transactional
     public JobApplicationResponse create(
             Long userId,
             JobApplicationRequest request)
     {
-        // Load the user before creating the ownership relationship
         AppUser user = appUserRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "User not found with id: " + userId));
 
         JobApplication application = new JobApplication(
+                user,
                 request.company(),
                 request.title(),
                 request.status(),
                 request.dateApplied(),
                 request.notes());
 
-        application.assignToUser(user);
-
         return mapToResponse(repository.save(application));
     }
 
-    // Return only applications owned by the authenticated user
     public List<JobApplicationResponse> findAll(
             Long userId,
             String status,
@@ -79,7 +75,6 @@ public class JobApplicationService {
                 .toList();
     }
 
-    // Find an application using both its ID and the owner's user ID
     public JobApplicationResponse findById(
             Long userId,
             Long applicationId) {
@@ -87,7 +82,6 @@ public class JobApplicationService {
         return mapToResponse(findOwnedApplication(userId, applicationId));
     }
 
-    // Update only the provided fields of an application owned by the user
     @Transactional
     public JobApplicationResponse patch(
             Long userId,
@@ -115,7 +109,6 @@ public class JobApplicationService {
         return mapToResponse(repository.saveAndFlush(application));
     }
 
-    // Delete an application only when it belongs to the authenticated user
     @Transactional
     public void delete(
             Long userId,
@@ -124,7 +117,6 @@ public class JobApplicationService {
         repository.delete(findOwnedApplication(userId, applicationId));
     }
 
-    // Find an application only when it belongs to the authenticated user
     private JobApplication findOwnedApplication(Long userId, Long applicationId) {
 
         return repository.findByIdAndUserId(applicationId, userId)
@@ -133,7 +125,6 @@ public class JobApplicationService {
                         "Job application not found with id: " + applicationId));
     }
 
-    // Map the entity to the DTO returned by the API
     private JobApplicationResponse mapToResponse(JobApplication application) {
 
         return new JobApplicationResponse(
@@ -162,10 +153,8 @@ public class JobApplicationService {
         );
     }
 
-    // Convert API sort names into Java entity field names
     private String mapSortField(String sortBy) {
 
-        // Use dateApplied when no sort field is provided
         if (sortBy == null || sortBy.isBlank()) {
             return "dateApplied";
         }

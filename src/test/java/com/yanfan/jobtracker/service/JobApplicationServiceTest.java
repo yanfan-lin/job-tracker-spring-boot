@@ -125,6 +125,7 @@ class JobApplicationServiceTest {
     void patch_shouldPatchApplicationAndReturnResponse() {
 
         JobApplication savedApplication = new JobApplication(
+                new AppUser("person@example.com", "hashed-password"),
                 "Amazon",
                 "Backend Developer",
                 "applied",
@@ -166,6 +167,7 @@ class JobApplicationServiceTest {
     void delete_shouldDeleteApplicationWhenFound() {
 
         JobApplication application = new JobApplication(
+                new AppUser("person@example.com", "hashed-password"),
                 "Amazon",
                 "Backend Developer",
                 "applied",

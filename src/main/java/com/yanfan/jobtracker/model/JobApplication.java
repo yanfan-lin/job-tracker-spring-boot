@@ -6,8 +6,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
-// Map job application records to the job_applications table
+// Represents a job application.
 @Entity
 @Table(name = "job_applications")
 public class JobApplication {
@@ -16,7 +17,6 @@ public class JobApplication {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Require every job application to belong to one registered user
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "user_id",
@@ -53,7 +53,14 @@ public class JobApplication {
 
     }
 
-    public JobApplication(String company, String title, String status, LocalDate dateApplied, String notes) {
+    public JobApplication(AppUser user,
+                          String company,
+                          String title,
+                          String status,
+                          LocalDate dateApplied,
+                          String notes)
+    {
+        this.user = Objects.requireNonNull(user, "User is required");
         this.company = company;
         this.title = title;
         this.status = status;
@@ -115,16 +122,6 @@ public class JobApplication {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
-    }
-
-    // Assign this application to its owner
-    public void assignToUser(AppUser user) {
-        if (user == null) {
-            throw new IllegalArgumentException("User is required");
-        }
-
-        this.user = user;
-
     }
 
 }

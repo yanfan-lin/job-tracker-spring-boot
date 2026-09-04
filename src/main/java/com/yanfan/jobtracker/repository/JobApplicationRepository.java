@@ -9,10 +9,9 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
-// Provide database access for job applications
+// Stores and retrieves job applications.
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long> {
 
-    // Return the user's applications with optional status and text filters
     @Query("""
             SELECT j FROM JobApplication j 
             WHERE j.user.id = :userId

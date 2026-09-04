@@ -12,7 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 
-// Configure stateless JWT security for the REST API
+// Configures authentication and public routes.
 @Configuration
 public class SecurityConfig {
 
@@ -24,28 +24,25 @@ public class SecurityConfig {
         this.swaggerPublic = swaggerPublic;
     }
 
-    // Define public routes and enable JWT bearer authentication
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                // CSRF is disabled because JWTs are sent in the Authorization header, not cookies
+                // CSRF protection is unnecessary because authentication uses bearer tokens instead of cookies
                 .csrf(csrf -> csrf.disable())
 
-                // Do not create server-side sessions; each request must include its own JWT
+                // Each request carries its own JWT, so the server does not need sessions.
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
                 .authorizeHttpRequests(auth -> {
-                    // User registration and login are public
                     auth.requestMatchers(
                             HttpMethod.POST,
                             "/auth/register",
                             "/auth/login"
                     ).permitAll();
 
-                    // Allow Swagger access only when enabled for the current environment
                     if (swaggerPublic) {
                         auth.requestMatchers(
                                 "/swagger-ui.html",
@@ -58,7 +55,6 @@ public class SecurityConfig {
                     auth.anyRequest().authenticated();
                 })
 
-                // Read and validate bearer tokens from the Authorization header
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(Customizer.withDefaults())
                 );
@@ -66,7 +62,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Use BCrypt to hash and verify passwords
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

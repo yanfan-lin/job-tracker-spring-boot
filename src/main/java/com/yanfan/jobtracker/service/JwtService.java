@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
+// Creates JWTs for authenticated users.
 @Service
 public class JwtService {
 

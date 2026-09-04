@@ -108,14 +108,13 @@ class JobApplicationRepositoryTest {
             String status)
     {
         JobApplication application = new JobApplication(
+                owner,
                 company,
                 title,
                 status,
                 LocalDate.of(2026, 7, 6),
                 null
         );
-
-        application.assignToUser(owner);
 
         return jobApplicationRepository.saveAndFlush(application);
     }

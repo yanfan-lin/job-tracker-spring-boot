@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+// Handles job application requests.
 @SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/applications")

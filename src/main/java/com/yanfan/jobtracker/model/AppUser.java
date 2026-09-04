@@ -6,12 +6,11 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
-// Map registered users to the app_users table
+// Represents a registered user.
 @Entity
 @Table(
         name = "app_users",
         uniqueConstraints = {
-                // Keep each email address unique at the database level
                 @UniqueConstraint(name = "uk_app_users_email", columnNames = "email")
         }
 )
@@ -24,7 +23,6 @@ public class AppUser {
     @Column(nullable = false, length = 254)
     private String email;
 
-    // Store only the BCrypt password hash
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
