@@ -61,15 +61,15 @@ class JobApplicationServiceTest {
 
         JobApplicationResponse response = service.create(42L, request);
 
-        assertThat(response.getCompany())
+        assertThat(response.company())
                 .isEqualTo("Amazon");
-        assertThat(response.getTitle())
+        assertThat(response.title())
                 .isEqualTo("Backend Developer");
-        assertThat(response.getStatus())
+        assertThat(response.status())
                 .isEqualTo("applied");
-        assertThat(response.getDateApplied())
+        assertThat(response.dateApplied())
                 .isEqualTo(LocalDate.of(2026, 7, 6));
-        assertThat(response.getNotes())
+        assertThat(response.notes())
                 .isEqualTo("Applied through LinkedIn");
 
         ArgumentCaptor<JobApplication> applicationCaptor = ArgumentCaptor.forClass(JobApplication.class);
@@ -146,15 +146,15 @@ class JobApplicationServiceTest {
 
         JobApplicationResponse response = service.patch(42L, 1L, request);
 
-        assertThat(response.getCompany())
+        assertThat(response.company())
                 .isEqualTo("Amazon");
-        assertThat(response.getTitle())
+        assertThat(response.title())
                 .isEqualTo("Backend Developer");
-        assertThat(response.getStatus())
+        assertThat(response.status())
                 .isEqualTo("interview");
-        assertThat(response.getDateApplied())
+        assertThat(response.dateApplied())
                 .isEqualTo(LocalDate.of(2026, 7, 6));
-        assertThat(response.getNotes())
+        assertThat(response.notes())
                 .isEqualTo("Recruiter screen scheduled");
 
     }

@@ -40,8 +40,8 @@ public class AuthService {
     public AppUserResponse register(RegisterRequest request) {
 
         AppUser user = new AppUser(
-                normalizeEmail(request.getEmail()),
-                passwordEncoder.encode(request.getPassword())
+                normalizeEmail(request.email()),
+                passwordEncoder.encode(request.password())
         );
 
         try {
@@ -55,12 +55,12 @@ public class AuthService {
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
 
-        AppUser user = appUserRepository.findByEmail(normalizeEmail(request.getEmail()))
+        AppUser user = appUserRepository.findByEmail(normalizeEmail(request.email()))
                 .orElseThrow(() ->
                         new InvalidCredentialsException(INVALID_CREDENTIALS_MESSAGE));
 
         if (!passwordEncoder.matches(
-                request.getPassword(),
+                request.password(),
                 user.getPasswordHash()))
         {
             throw new InvalidCredentialsException(INVALID_CREDENTIALS_MESSAGE);

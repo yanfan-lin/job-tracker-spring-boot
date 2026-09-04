@@ -57,7 +57,7 @@ class AuthServiceTest {
 
         AppUserResponse response = authService.register(request);
 
-        assertThat(response.getEmail())
+        assertThat(response.email())
                 .isEqualTo("person@example.com");
 
         ArgumentCaptor<AppUser> userCaptor = ArgumentCaptor.forClass(AppUser.class);
@@ -121,11 +121,11 @@ class AuthServiceTest {
 
         LoginResponse response = authService.login(request);
 
-        assertThat(response.getAccessToken())
+        assertThat(response.accessToken())
                 .isEqualTo("signed-jwt-token");
-        assertThat(response.getTokenType())
+        assertThat(response.tokenType())
                 .isEqualTo("Bearer");
-        assertThat(response.getExpiresIn())
+        assertThat(response.expiresIn())
                 .isEqualTo(3600L);
     }
 

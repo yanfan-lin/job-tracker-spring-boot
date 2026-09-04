@@ -166,7 +166,7 @@ class AuthControllerTest {
         verify(authService)
                 .register(requestCaptor.capture());
 
-        assertThat(requestCaptor.getValue().getEmail())
+        assertThat(requestCaptor.getValue().email())
                 .isEqualTo("Person@Example.COM");
     }
 

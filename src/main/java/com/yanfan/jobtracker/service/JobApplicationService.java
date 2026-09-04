@@ -45,11 +45,11 @@ public class JobApplicationService {
                 ));
 
         JobApplication application = new JobApplication(
-                request.getCompany(),
-                request.getTitle(),
-                request.getStatus(),
-                request.getDateApplied(),
-                request.getNotes()
+                request.company(),
+                request.title(),
+                request.status(),
+                request.dateApplied(),
+                request.notes()
         );
 
         application.assignToUser(user);
@@ -96,20 +96,20 @@ public class JobApplicationService {
     {
         JobApplication application = findOwnedApplication(userId, applicationId);
 
-        if (request.getCompany() != null) {
-            application.setCompany(request.getCompany());
+        if (request.company() != null) {
+            application.setCompany(request.company());
         }
-        if (request.getTitle() != null) {
-            application.setTitle(request.getTitle());
+        if (request.title() != null) {
+            application.setTitle(request.title());
         }
-        if (request.getStatus() != null) {
-            application.setStatus(request.getStatus());
+        if (request.status() != null) {
+            application.setStatus(request.status());
         }
-        if (request.getDateApplied() != null) {
-            application.setDateApplied(request.getDateApplied());
+        if (request.dateApplied() != null) {
+            application.setDateApplied(request.dateApplied());
         }
-        if (request.getNotes() != null) {
-            application.setNotes(request.getNotes());
+        if (request.notes() != null) {
+            application.setNotes(request.notes());
         }
 
         return mapToResponse(repository.saveAndFlush(application));
