@@ -8,7 +8,6 @@ import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.model.JobApplication;
 import com.yanfan.jobtracker.repository.AppUserRepository;
 import com.yanfan.jobtracker.repository.JobApplicationRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,8 +25,6 @@ public class JobApplicationService {
 
     private final AppUserRepository appUserRepository;
 
-    // Constructor injection
-    @Autowired
     public JobApplicationService(JobApplicationRepository repository, AppUserRepository appUserRepository) {
         this.repository = repository;
         this.appUserRepository = appUserRepository;

@@ -6,7 +6,6 @@ import com.yanfan.jobtracker.dto.LoginResponse;
 import com.yanfan.jobtracker.dto.RegisterRequest;
 import com.yanfan.jobtracker.service.AuthService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,8 +20,6 @@ public class AuthController {
 
     private final AuthService authService;
 
-    // Constructor injection
-    @Autowired
     public AuthController(AuthService authService) {
         this.authService = authService;
     }

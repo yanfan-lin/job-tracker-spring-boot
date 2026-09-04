@@ -2,7 +2,6 @@ package com.yanfan.jobtracker.service;
 
 
 import com.yanfan.jobtracker.model.AppUser;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -21,8 +20,6 @@ public class JwtService {
 
     private final long expirationSeconds;
 
-    // Constructor injection
-    @Autowired
     public JwtService(
             JwtEncoder jwtEncoder,
             @Value("${app.jwt.expiration-seconds}") long expirationSeconds
