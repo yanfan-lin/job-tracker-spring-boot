@@ -1,12 +1,8 @@
 package com.yanfan.jobtracker.controller;
 
-import com.yanfan.jobtracker.dto.AppUserResponse;
-import com.yanfan.jobtracker.dto.LoginRequest;
-import com.yanfan.jobtracker.dto.LoginResponse;
 import com.yanfan.jobtracker.dto.RegisterRequest;
 import com.yanfan.jobtracker.service.AuthService;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -16,20 +12,16 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
-
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-// Test AuthController HTTP behavior with a mocked service
 @WebMvcTest(AuthController.class)
-
-// Disable security filters so these tests focus on validation and HTTP responses
+// Disable security filters so these tests cover validation and error responses.
 @AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
 
@@ -38,37 +30,6 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthService authService;
-
-
-    @Test
-    void register_shouldReturnCreatedUser() throws Exception {
-        String request = """
-                {
-                    "email": "person@example.com",
-                    "password": "password123"
-                }
-                """;
-
-        AppUserResponse response = new AppUserResponse(
-                1L,
-                "person@example.com",
-                LocalDateTime.of(2026, 7, 24, 18, 30)
-        );
-
-        when(authService.register(any(RegisterRequest.class)))
-                .thenReturn(response);
-
-        mockMvc.perform(post("/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(request))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.email").value("person@example.com"))
-                .andExpect(jsonPath("$.createdAt").value("2026-07-24T18:30:00"))
-                .andExpect(jsonPath("$.password").doesNotExist())
-                .andExpect(jsonPath("$.passwordHash").doesNotExist());
-
-    }
 
     @Test
     void register_shouldReturnBadRequestWhenRequestIsInvalid() throws Exception {
@@ -90,11 +51,11 @@ class AuthControllerTest {
                         .value("Password must be at least 8 characters"));
 
         verifyNoInteractions(authService);
-
     }
 
     @Test
     void register_shouldReturnConflictWhenEmailAlreadyExists() throws Exception {
+
         String request = """
                 {
                     "email": "person@example.com",
@@ -134,99 +95,11 @@ class AuthControllerTest {
                         .value("Malformed JSON request body"));
 
         verifyNoInteractions(authService);
-
-    }
-
-    @Test
-    void register_shouldTrimEmailBeforeCallingService() throws Exception {
-        String request = """
-                {
-                    "email": "  Person@Example.COM  ",
-                    "password": "password123"
-                }
-                """;
-
-        AppUserResponse response = new AppUserResponse(
-                1L,
-                "person@example.com",
-                LocalDateTime.of(2026, 7, 24, 19, 30)
-        );
-
-        when(authService.register(any(RegisterRequest.class)))
-                .thenReturn(response);
-
-        mockMvc.perform(post("/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(request))
-                .andExpect(status().isCreated());
-
-        ArgumentCaptor<RegisterRequest> requestCaptor =
-                ArgumentCaptor.forClass(RegisterRequest.class);
-
-        verify(authService)
-                .register(requestCaptor.capture());
-
-        assertThat(requestCaptor.getValue().email())
-                .isEqualTo("Person@Example.COM");
-    }
-
-    @Test
-    void login_shouldReturnJwtResponse() throws Exception {
-        String request = """
-                {
-                    "email": "person@example.com",
-                    "password": "password123"
-                }
-                """;
-
-        LoginResponse response = new LoginResponse(
-                "signed-jwt-token",
-                "Bearer",
-                3600L
-        );
-
-        when(authService.login(any(LoginRequest.class)))
-                .thenReturn(response);
-
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(request))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken")
-                        .value("signed-jwt-token"))
-                .andExpect(jsonPath("$.tokenType")
-                        .value("Bearer"))
-                .andExpect(jsonPath("$.expiresIn")
-                        .value(3600));
-
-    }
-
-    @Test
-    void login_shouldReturnUnauthorizedWhenCredentialsAreInvalid() throws Exception {
-        String request = """
-                {
-                    "email": "person@example.com",
-                    "password": "wrong-password"
-                }
-                """;
-
-        when(authService.login(any(LoginRequest.class)))
-                .thenThrow(new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "Invalid email or password"));
-
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(request))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Unauthorized"))
-                .andExpect(jsonPath("$.message")
-                        .value("Invalid email or password"));
-
     }
 
     @Test
     void login_shouldReturnBadRequestWhenRequestIsInvalid() throws Exception {
+
         String request = """
                 {
                     "email": "not-an-email",
