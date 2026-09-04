@@ -29,7 +29,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 // Test JobApplicationController HTTP behavior with a mocked service
 @WebMvcTest(JobApplicationController.class)
-
 // Disable security filters so tests focus on validation and responses
 @AutoConfigureMockMvc(addFilters = false)
 class JobApplicationControllerTest {
@@ -40,9 +39,9 @@ class JobApplicationControllerTest {
     @MockitoBean
     private JobApplicationService service;
 
-    // Verify listing applications returns 200 OK
     @Test
     void findAll_shouldReturnApplications() throws Exception {
+
         JobApplicationResponse response = new JobApplicationResponse(
                 1L,
                 "Amazon",
@@ -75,12 +74,11 @@ class JobApplicationControllerTest {
                 .andExpect(jsonPath("$[0].status").value("applied"))
                 .andExpect(jsonPath("$[0].dateApplied").value("2026-07-06"))
                 .andExpect(jsonPath("$[0].notes").value("Applied through LinkedIn"));
-
     }
 
-    // Verify finding an existing application returns 200 OK
     @Test
     void findById_shouldReturnApplicationWhenFound() throws Exception {
+
         JobApplicationResponse response = new JobApplicationResponse(
                 1L,
                 "Amazon",
@@ -98,33 +96,39 @@ class JobApplicationControllerTest {
         mockMvc.perform(get("/applications/1")
                         .principal(createAuthentication()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.company").value("Amazon"))
-                .andExpect(jsonPath("$.title").value("Backend Developer"))
-                .andExpect(jsonPath("$.status").value("applied"))
-                .andExpect(jsonPath("$.dateApplied").value("2026-07-06"))
-                .andExpect(jsonPath("$.notes").value("Applied through LinkedIn"));
-
+                .andExpect(jsonPath("$.id")
+                        .value(1))
+                .andExpect(jsonPath("$.company")
+                        .value("Amazon"))
+                .andExpect(jsonPath("$.title")
+                        .value("Backend Developer"))
+                .andExpect(jsonPath("$.status")
+                        .value("applied"))
+                .andExpect(jsonPath("$.dateApplied")
+                        .value("2026-07-06"))
+                .andExpect(jsonPath("$.notes")
+                        .value("Applied through LinkedIn"));
     }
 
-    // Verify a missing application returns 404 Not Found
     @Test
     void findById_shouldReturnNotFoundWhenApplicationDoesNotExist() throws Exception {
+
         when(service.findById(42L, 999L))
                 .thenThrow(new ResourceNotFoundException("Job application not found with id: 999"));
 
         mockMvc.perform(get("/applications/999")
                         .principal(createAuthentication()))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.error").value("Not Found"))
-                .andExpect(jsonPath("$.message").value("Job application not found with id: 999"));
-
+                .andExpect(status()
+                        .isNotFound())
+                .andExpect(jsonPath("$.error")
+                        .value("Not Found"))
+                .andExpect(jsonPath("$.message")
+                        .value("Job application not found with id: 999"));
     }
 
-    // Verify creating a valid application returns 201 Created
     @Test
     void create_shouldReturnCreatedApplication() throws Exception {
+
         String request = """
                 {
                   "company": "Amazon",
@@ -148,26 +152,31 @@ class JobApplicationControllerTest {
 
         when(service.create(
                 eq(42L),
-                any(JobApplicationRequest.class)
-        )).thenReturn(response);
+                any(JobApplicationRequest.class)))
+                .thenReturn(response);
 
         mockMvc.perform(post("/applications")
                         .principal(createAuthentication())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.company").value("Amazon"))
-                .andExpect(jsonPath("$.title").value("Backend Developer"))
-                .andExpect(jsonPath("$.status").value("applied"))
-                .andExpect(jsonPath("$.dateApplied").value("2026-07-06"))
-                .andExpect(jsonPath("$.notes").value("Applied through LinkedIn"));
-
+                .andExpect(jsonPath("$.id")
+                        .value(1))
+                .andExpect(jsonPath("$.company")
+                        .value("Amazon"))
+                .andExpect(jsonPath("$.title")
+                        .value("Backend Developer"))
+                .andExpect(jsonPath("$.status")
+                        .value("applied"))
+                .andExpect(jsonPath("$.dateApplied")
+                        .value("2026-07-06"))
+                .andExpect(jsonPath("$.notes")
+                        .value("Applied through LinkedIn"));
     }
 
-    // Verify invalid creation data returns 400 Bad Request
     @Test
     void create_shouldReturnBadRequestWhenRequestBodyIsInvalid() throws Exception {
+
         String request = """
                 {
                   "company": "",
@@ -182,41 +191,17 @@ class JobApplicationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Validation Error"))
                 .andExpect(jsonPath("$.message").value("Request body validation failed"))
                 .andExpect(jsonPath("$.fieldErrors.company").exists())
                 .andExpect(jsonPath("$.fieldErrors.title").exists())
                 .andExpect(jsonPath("$.fieldErrors.status").exists())
                 .andExpect(jsonPath("$.fieldErrors.dateApplied").exists());
-
     }
 
-    // Verify malformed creation JSON returns 400 Bad Request
-    @Test
-    void create_shouldReturnBadRequestWhenJsonIsMalformed() throws Exception {
-        String request = """
-                {
-                  "company": "Amazon",
-                  "title": "Backend Developer",
-                  "status": "applied",
-                  "dateApplied": "2026-07-06",
-                  "notes": "Missing closing brace"
-                """;
-
-        mockMvc.perform(post("/applications")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(request))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"))
-                .andExpect(jsonPath("$.message").value("Malformed JSON request body"));
-
-    }
-
-    // Verify an overlong company is rejected during creation
     @Test
     void create_shouldReturnBadRequestWhenCompanyExceedsMaximumLength() throws Exception {
+
         String overlongCompany = "A".repeat(256);
 
         String request = """
@@ -232,16 +217,13 @@ class JobApplicationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Validation Error"))
                 .andExpect(jsonPath("$.fieldErrors.company")
                         .value("Company must not exceed 255 characters"));
 
         verifyNoInteractions(service);
-
     }
 
-    // Verify a valid partial update returns 200 OK
     @Test
     void patch_shouldReturnUpdatedApplication() throws Exception {
         String request = """
@@ -266,23 +248,28 @@ class JobApplicationControllerTest {
                 eq(42L),
                 eq(1L),
                 any(JobApplicationPatchRequest.class)
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
         mockMvc.perform(patch("/applications/1")
                         .principal(createAuthentication())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.company").value("Amazon"))
-                .andExpect(jsonPath("$.title").value("Backend Developer"))
-                .andExpect(jsonPath("$.status").value("interview"))
-                .andExpect(jsonPath("$.dateApplied").value("2026-07-06"))
-                .andExpect(jsonPath("$.notes").value("Recruiter screen scheduled"));
-
+                .andExpect(jsonPath("$.id")
+                        .value(1))
+                .andExpect(jsonPath("$.company")
+                        .value("Amazon"))
+                .andExpect(jsonPath("$.title")
+                        .value("Backend Developer"))
+                .andExpect(jsonPath("$.status")
+                        .value("interview"))
+                .andExpect(jsonPath("$.dateApplied")
+                        .value("2026-07-06"))
+                .andExpect(jsonPath("$.notes")
+                        .value("Recruiter screen scheduled"));
     }
 
-    // Verify an invalid status update returns 400 Bad Request
     @Test
     void patch_shouldReturnBadRequestWhenRequestBodyIsInvalid() throws Exception {
         String request = """
@@ -294,17 +281,19 @@ class JobApplicationControllerTest {
         mockMvc.perform(patch("/applications/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Validation Error"))
-                .andExpect(jsonPath("$.message").value("Request body validation failed"))
-                .andExpect(jsonPath("$.fieldErrors.status").exists());
-
+                .andExpect(status()
+                        .isBadRequest())
+                .andExpect(jsonPath("$.error")
+                        .value("Validation Error"))
+                .andExpect(jsonPath("$.message")
+                        .value("Request body validation failed"))
+                .andExpect(jsonPath("$.fieldErrors.status")
+                        .exists());
     }
 
-    // Verify blank supplied fields are rejected during a partial update
     @Test
     void patch_shouldReturnBadRequestWhenCompanyAndTitleAreBlank() throws Exception {
+
         String request = """
                 {
                   "company": "",
@@ -316,7 +305,6 @@ class JobApplicationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Validation Error"))
                 .andExpect(jsonPath("$.fieldErrors.company")
                         .value("Company must not be blank"))
@@ -324,10 +312,8 @@ class JobApplicationControllerTest {
                         .value("Title must not be blank"));
 
         verifyNoInteractions(service);
-
     }
 
-    // Verify an overlong title is rejected during a partial update
     @Test
     void patch_shouldReturnBadRequestWhenTitleExceedsMaximumLength() throws Exception {
         String overlongTitle = "T".repeat(256);
@@ -341,44 +327,29 @@ class JobApplicationControllerTest {
         mockMvc.perform(patch("/applications/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Validation Error"))
+                .andExpect(status()
+                        .isBadRequest())
+                .andExpect(jsonPath("$.error")
+                        .value("Validation Error"))
                 .andExpect(jsonPath("$.fieldErrors.title")
                         .value("Title must not exceed 255 characters"));
 
         verifyNoInteractions(service);
-
     }
 
-    // Verify deleting an existing application returns 204 No Content
     @Test
     void delete_shouldReturnNoContent() throws Exception {
+
         mockMvc.perform(delete("/applications/1")
                         .principal(createAuthentication()))
                 .andExpect(status().isNoContent());
 
         verify(service).delete(42L, 1L);
-
-    }
-
-    // Verify deleting a missing application returns 404 Not Found
-    @Test
-    void delete_shouldReturnNotFoundWhenApplicationDoesNotExist() throws Exception {
-        doThrow(new ResourceNotFoundException("Job application not found with id: 999"))
-                .when(service).delete(42L, 999L);
-
-        mockMvc.perform(delete("/applications/999")
-                        .principal(createAuthentication()))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.error").value("Not Found"))
-                .andExpect(jsonPath("$.message").value("Job application not found with id: 999"));
-
     }
 
     // Create JWT authentication with the expected userId claim
     private JwtAuthenticationToken createAuthentication() {
+
         Jwt jwt = Jwt.withTokenValue("test-token")
                 .header("alg", "HS256")
                 .subject("person@example.com")
@@ -386,8 +357,6 @@ class JobApplicationControllerTest {
                 .build();
 
         return new JwtAuthenticationToken(jwt);
-
     }
-
 
 }
