@@ -3,22 +3,22 @@ package com.yanfan.jobtracker.service;
 import com.yanfan.jobtracker.dto.JobApplicationPatchRequest;
 import com.yanfan.jobtracker.dto.JobApplicationRequest;
 import com.yanfan.jobtracker.dto.JobApplicationResponse;
-import com.yanfan.jobtracker.exception.ResourceNotFoundException;
 import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.model.JobApplication;
 import com.yanfan.jobtracker.repository.AppUserRepository;
 import com.yanfan.jobtracker.repository.JobApplicationRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
-// Handle job application business logic and ownership checks
+// Manages each user's job applications.
 @Service
 public class JobApplicationService {
 
@@ -26,42 +26,34 @@ public class JobApplicationService {
 
     private final AppUserRepository appUserRepository;
 
-    // Constructor injection
-    @Autowired
-    public JobApplicationService(JobApplicationRepository repository, AppUserRepository appUserRepository) {
+    public JobApplicationService(JobApplicationRepository repository,
+                                 AppUserRepository appUserRepository)
+    {
         this.repository = repository;
         this.appUserRepository = appUserRepository;
     }
 
-    // Create a new application and assign it to the authenticated user
     @Transactional
     public JobApplicationResponse create(
             Long userId,
-            JobApplicationRequest request
-    ) {
-        // Load the user before creating the ownership relationship
+            JobApplicationRequest request)
+    {
         AppUser user = appUserRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "User not found with id: " + userId
-                ));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found with id: " + userId));
 
         JobApplication application = new JobApplication(
-                request.getCompany(),
-                request.getTitle(),
-                request.getStatus(),
-                request.getDateApplied(),
-                request.getNotes()
-        );
+                user,
+                request.company(),
+                request.title(),
+                request.status(),
+                request.dateApplied(),
+                request.notes());
 
-        application.assignToUser(user);
-
-        JobApplication savedApplication = repository.save(application);
-
-        return mapToResponse(savedApplication);
-
+        return mapToResponse(repository.save(application));
     }
 
-    // Return only applications owned by the authenticated user
     public List<JobApplicationResponse> findAll(
             Long userId,
             String status,
@@ -69,99 +61,72 @@ public class JobApplicationService {
             String sortBy,
             String order,
             int limit,
-            int page
-    ) {
-        Pageable pageable =
-                buildPageable(sortBy, order, limit, page);
-
-        Page<JobApplication> thePage =
-                repository.findWithFiltersForUser(
+            int page)
+    {
+        return repository.findWithFiltersForUser(
                         userId,
-                        normalizeFilter(status),
-                        normalizeSearch(search),
-                        pageable
-                );
-
-        return thePage.getContent()
+                        StringUtils.hasText(status) ? status : null,
+                        StringUtils.hasText(search) ? search : "",
+                        buildPageable(sortBy, order, limit, page)
+                )
+                .getContent()
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
-
     }
 
-    // Find an application using both its ID and the owner's user ID
     public JobApplicationResponse findById(
             Long userId,
-            Long applicationId
-    ) {
-        JobApplication application = repository.findByIdAndUserId(applicationId, userId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Job application not found with id: " + applicationId
-                        )
-                );
+            Long applicationId) {
 
-        return mapToResponse(application);
-
+        return mapToResponse(findOwnedApplication(userId, applicationId));
     }
 
-    // Update only the provided fields of an application owned by the user
     @Transactional
     public JobApplicationResponse patch(
             Long userId,
             Long applicationId,
-            JobApplicationPatchRequest request
-    ) {
-        // Use both IDs so one user cannot update another user's application
-        JobApplication application = repository.findByIdAndUserId(applicationId, userId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Job application not found with id: " + applicationId
-                        )
-                );
+            JobApplicationPatchRequest request)
+    {
+        JobApplication application = findOwnedApplication(userId, applicationId);
 
-        if (request.getCompany() != null) {
-            application.setCompany(request.getCompany());
+        if (request.company() != null) {
+            application.setCompany(request.company());
         }
-        if (request.getTitle() != null) {
-            application.setTitle(request.getTitle());
+        if (request.title() != null) {
+            application.setTitle(request.title());
         }
-        if (request.getStatus() != null) {
-            application.setStatus(request.getStatus());
+        if (request.status() != null) {
+            application.setStatus(request.status());
         }
-        if (request.getDateApplied() != null) {
-            application.setDateApplied(request.getDateApplied());
+        if (request.dateApplied() != null) {
+            application.setDateApplied(request.dateApplied());
         }
-        if (request.getNotes() != null) {
-            application.setNotes(request.getNotes());
+        if (request.notes() != null) {
+            application.setNotes(request.notes());
         }
 
-        JobApplication updatedApplication = repository.saveAndFlush(application);
-
-        return mapToResponse(updatedApplication);
-
+        return mapToResponse(repository.saveAndFlush(application));
     }
 
-    // Delete an application only when it belongs to the authenticated user
     @Transactional
     public void delete(
             Long userId,
-            Long applicationId
-    ) {
-        // Use the ownership-scoped query before deleting the record
-        JobApplication application = repository.findByIdAndUserId(applicationId, userId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Job application not found with id: " + applicationId
-                        )
-                );
+            Long applicationId) {
 
-        repository.delete(application);
-
+        repository.delete(findOwnedApplication(userId, applicationId));
     }
 
-    // Map the entity to the DTO returned by the API
+    private JobApplication findOwnedApplication(Long userId, Long applicationId) {
+
+        return repository.findByIdAndUserId(applicationId, userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Job application not found with id: " + applicationId));
+    }
+
     private JobApplicationResponse mapToResponse(JobApplication application) {
+
         return new JobApplicationResponse(
                 application.getId(),
                 application.getCompany(),
@@ -172,82 +137,36 @@ public class JobApplicationService {
                 application.getCreatedAt(),
                 application.getUpdatedAt()
         );
-
     }
 
-    // Convert an empty filter to null so the repository can ignore it
-    private String normalizeFilter(String str) {
-        if (str == null || str.isBlank()) {
-            return null;
-        }
-
-        return str;
-
-    }
-
-    // Convert an empty search to an empty string so it matches all records
-    private String normalizeSearch(String search) {
-        if (search == null || search.isBlank()) {
-            return "";
-        }
-
-        return search;
-
-    }
-
-    // Validate pagination values and build the request sort order
     private Pageable buildPageable(String sortBy, String order, int limit, int page) {
-        if (limit <= 0) {
-            throw new IllegalArgumentException("limit must be greater than 0");
-        }
 
-        if (page < 0) {
-            throw new IllegalArgumentException("page cannot be negative");
-        }
-
-        String sortField = mapSortField(sortBy);
-        Sort.Direction direction = mapSortDirection(order);
-
-        return PageRequest.of(page, limit, Sort.by(direction, sortField));
-
+        return PageRequest.of(
+                page,
+                limit,
+                Sort.by(
+                        StringUtils.hasText(order)
+                                ? Sort.Direction.fromString(order)
+                                : Sort.Direction.DESC,
+                        mapSortField(sortBy)
+                )
+        );
     }
 
-    // Convert API sort names into Java entity field names
     private String mapSortField(String sortBy) {
 
-        // Use dateApplied when no sort field is provided
         if (sortBy == null || sortBy.isBlank()) {
             return "dateApplied";
         }
 
         return switch (sortBy) {
-            case "id" -> "id";
-            case "company" -> "company";
-            case "title" -> "title";
-            case "status" -> "status";
+            case "id", "company", "title", "status" -> sortBy;
             case "date_applied" -> "dateApplied";
             case "created_at" -> "createdAt";
             case "updated_at" -> "updatedAt";
             default -> throw new IllegalArgumentException(
-                    "sort_by must be one of: id, company, title, status, date_applied, created_at, updated_at"
-            );
+                    "sort_by must be one of: id, company, title, status, date_applied, created_at, updated_at");
         };
-
     }
-
-    // Convert the order parameter into Spring's sorting direction
-    private Sort.Direction mapSortDirection(String order) {
-        if (order == null || order.isBlank() || order.equalsIgnoreCase("desc")) {
-            return Sort.Direction.DESC;
-        }
-
-        if (order.equalsIgnoreCase("asc")) {
-            return Sort.Direction.ASC;
-        }
-
-        throw new IllegalArgumentException("order must be either asc or desc");
-
-    }
-
 
 }

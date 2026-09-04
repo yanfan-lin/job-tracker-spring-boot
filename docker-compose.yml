@@ -3,7 +3,6 @@
 services:
   db:
     image: postgres:16
-    container_name: job-tracker-db
 
     environment:
       POSTGRES_DB: job_tracker
@@ -25,7 +24,6 @@ services:
 
   app:
     build: .
-    container_name: job-tracker-api
 
     environment:
       DATABASE_URL: jdbc:postgresql://db:5432/job_tracker

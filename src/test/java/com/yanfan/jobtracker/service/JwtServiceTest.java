@@ -12,18 +12,15 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
 
-
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-// Test real JWT signing and decoding
 class JwtServiceTest {
 
     @Test
     void generateToken_shouldCreateSignedTokenWithExpectedClaims() {
 
-        // Use a fixed 32-byte key only for testing
         String testSecret = Base64.getEncoder().encodeToString(
                 "0123456789abcdef0123456789abcdef"
                         .getBytes(StandardCharsets.UTF_8)
@@ -41,35 +38,28 @@ class JwtServiceTest {
 
         AppUser user = mock(AppUser.class);
 
-        when(user.getId()).thenReturn(42L);
-        when(user.getEmail()).thenReturn("person@example.com");
+        when(user.getId())
+                .thenReturn(42L);
+
+        when(user.getEmail())
+                .thenReturn("person@example.com");
 
         String token = jwtService.generateToken(user);
 
         Jwt decodedToken = jwtDecoder.decode(token);
 
-        assertThat(token).isNotBlank();
-        assertThat(decodedToken.getSubject()).isEqualTo("person@example.com");
+        assertThat(decodedToken.getSubject())
+                .isEqualTo("person@example.com");
 
         Number userIdClaim = decodedToken.getClaim("userId");
 
-        // Confirm the decoded token contains the expected user ID claim
-        assertThat(userIdClaim).isNotNull();
         assertThat(userIdClaim.longValue())
                 .isEqualTo(42L);
 
-        assertThat(decodedToken.getIssuedAt())
-                .isNotNull();
-        assertThat(decodedToken.getExpiresAt())
-                .isNotNull();
-
-        // Confirm the token lifetime matches the configured expiration
         assertThat(Duration.between(
                 decodedToken.getIssuedAt(),
                 decodedToken.getExpiresAt()).getSeconds())
                 .isEqualTo(3600);
-
     }
-
 
 }

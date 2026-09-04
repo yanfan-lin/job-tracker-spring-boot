@@ -1,11 +1,14 @@
 package com.yanfan.jobtracker.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
-// Map job application records to the job_applications table
+// Represents a job application.
 @Entity
 @Table(name = "job_applications")
 public class JobApplication {
@@ -14,7 +17,6 @@ public class JobApplication {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Require every job application to belong to one registered user
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "user_id",
@@ -38,9 +40,11 @@ public class JobApplication {
     @Column(name = "date_applied", nullable = false)
     private LocalDate dateApplied;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -49,7 +53,14 @@ public class JobApplication {
 
     }
 
-    public JobApplication(String company, String title, String status, LocalDate dateApplied, String notes) {
+    public JobApplication(AppUser user,
+                          String company,
+                          String title,
+                          String status,
+                          LocalDate dateApplied,
+                          String notes)
+    {
+        this.user = Objects.requireNonNull(user, "User is required");
         this.company = company;
         this.title = title;
         this.status = status;
@@ -57,27 +68,8 @@ public class JobApplication {
         this.notes = notes;
     }
 
-    // Set creation and update timestamps before inserting the record
-    @PrePersist
-    protected void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
-    }
-
-    // Refresh the update timestamp before saving changes
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
-
     public Long getId() {
         return id;
-    }
-
-    public AppUser getUser() {
-        return user;
     }
 
     public String getCompany() {
@@ -127,16 +119,5 @@ public class JobApplication {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
-
-    // Assign this application to its owner
-    public void assignToUser(AppUser user) {
-        if (user == null) {
-            throw new IllegalArgumentException("User is required");
-        }
-
-        this.user = user;
-
-    }
-
 
 }

@@ -1,19 +1,21 @@
 package com.yanfan.jobtracker.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
-// Map registered users to the app_users table
+// Represents a registered user.
 @Entity
 @Table(
         name = "app_users",
         uniqueConstraints = {
-                // Keep each email address unique at the database level
                 @UniqueConstraint(name = "uk_app_users_email", columnNames = "email")
         }
 )
 public class AppUser {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -21,16 +23,16 @@ public class AppUser {
     @Column(nullable = false, length = 254)
     private String email;
 
-    // Store only the BCrypt password hash
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
 
     public AppUser() {
 
@@ -39,20 +41,6 @@ public class AppUser {
     public AppUser(String email, String passwordHash) {
         this.email = email;
         this.passwordHash = passwordHash;
-    }
-
-    // Set both timestamps before inserting a new user
-    @PrePersist
-    protected void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
-    }
-
-    // Refresh the update timestamp before saving changes
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
     }
 
     public Long getId() {
@@ -70,10 +58,5 @@ public class AppUser {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
 
 }

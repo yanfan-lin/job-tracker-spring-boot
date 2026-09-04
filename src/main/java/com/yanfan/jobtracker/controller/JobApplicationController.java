@@ -6,15 +6,13 @@ import com.yanfan.jobtracker.dto.JobApplicationResponse;
 import com.yanfan.jobtracker.service.JobApplicationService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// Handle authenticated job application requests
+// Handles job application requests.
 @SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/applications")
@@ -22,102 +20,70 @@ public class JobApplicationController {
 
     private final JobApplicationService service;
 
-    // Constructor injection
-    @Autowired
     public JobApplicationController(JobApplicationService service) {
         this.service = service;
     }
 
-    // Return the authenticated user's applications with optional filters and pagination
     @GetMapping
-    public ResponseEntity<List<JobApplicationResponse>> findAll(
+    public List<JobApplicationResponse> findAll(
             JwtAuthenticationToken authentication,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
             @RequestParam(name = "sort_by", defaultValue = "date_applied") String sortBy,
             @RequestParam(defaultValue = "desc") String order,
             @RequestParam(defaultValue = "10") int limit,
-            @RequestParam(defaultValue = "0") int page
-    ) {
-        Long userId = extractUserId(authentication);
-
-        List<JobApplicationResponse> applications = service.findAll(
-                userId,
+            @RequestParam(defaultValue = "0") int page)
+    {
+        return service.findAll(
+                extractUserId(authentication),
                 status,
                 search,
                 sortBy,
                 order,
                 limit,
-                page
-        );
-
-        return ResponseEntity.ok(applications);
-
+                page);
     }
 
-    // Return one application only when it belongs to the authenticated user
     @GetMapping("/{id}")
-    public ResponseEntity<JobApplicationResponse> findById(
+    public JobApplicationResponse findById(
             JwtAuthenticationToken authentication,
-            @PathVariable Long id
-
-    ) {
-        Long userId = extractUserId(authentication);
-
-        JobApplicationResponse theApplication = service.findById(userId, id);
-
-        return ResponseEntity.ok(theApplication);
-
+            @PathVariable Long id)
+    {
+        return service.findById(extractUserId(authentication), id);
     }
 
-    // Create a new application for the authenticated user
     @PostMapping
-    public ResponseEntity<JobApplicationResponse> create(
+    @ResponseStatus(HttpStatus.CREATED)
+    public JobApplicationResponse create(
             JwtAuthenticationToken authentication,
-            @Valid @RequestBody JobApplicationRequest request
-    ) {
-        Long userId = extractUserId(authentication);
-
-        JobApplicationResponse theApplication = service.create(userId, request);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(theApplication);
-
+            @Valid @RequestBody JobApplicationRequest request)
+    {
+        return service.create(extractUserId(authentication), request);
     }
 
-    // Update only the provided fields of an application owned by the user
     @PatchMapping("/{id}")
-    public ResponseEntity<JobApplicationResponse> patch(
+    public JobApplicationResponse patch(
             JwtAuthenticationToken authentication,
             @PathVariable Long id,
-            @Valid @RequestBody JobApplicationPatchRequest request
-    ) {
-        Long userId = extractUserId(authentication);
-
-        JobApplicationResponse updatedApplication = service.patch(userId, id, request);
-
-        return ResponseEntity.ok(updatedApplication);
+            @Valid @RequestBody JobApplicationPatchRequest request)
+    {
+        return service.patch(extractUserId(authentication), id, request);
     }
 
-    // Delete an application only when it belongs to the authenticated user
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(
             JwtAuthenticationToken authentication,
-            @PathVariable Long id
-    ) {
-        Long userId = extractUserId(authentication);
-
-        service.delete(userId, id);
-
-        return ResponseEntity.noContent().build();
-
+            @PathVariable Long id)
+    {
+        service.delete(extractUserId(authentication), id);
     }
 
-    // Extract the database user ID stored in the validated JWT
     private Long extractUserId(JwtAuthenticationToken authentication) {
+
         Number userIdClaim = authentication.getToken().getClaim("userId");
 
         return userIdClaim.longValue();
     }
-
 
 }

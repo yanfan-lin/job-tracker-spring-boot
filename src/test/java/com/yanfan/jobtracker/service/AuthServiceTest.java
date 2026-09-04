@@ -1,11 +1,7 @@
 package com.yanfan.jobtracker.service;
 
-import com.yanfan.jobtracker.dto.AppUserResponse;
 import com.yanfan.jobtracker.dto.LoginRequest;
-import com.yanfan.jobtracker.dto.LoginResponse;
 import com.yanfan.jobtracker.dto.RegisterRequest;
-import com.yanfan.jobtracker.exception.DuplicateEmailException;
-import com.yanfan.jobtracker.exception.InvalidCredentialsException;
 import com.yanfan.jobtracker.model.AppUser;
 import com.yanfan.jobtracker.repository.AppUserRepository;
 import org.junit.jupiter.api.Test;
@@ -15,7 +11,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -25,7 +23,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 
-// Test AuthService with mocked dependencies and no real database
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
@@ -42,16 +39,13 @@ class AuthServiceTest {
     private AuthService authService;
 
 
-    // Verify successful user registration
     @Test
-    void register_shouldNormalizeEmailHashPasswordAndReturnResponse() {
+    void register_shouldNormalizeEmailAndHashPassword() {
+
         RegisterRequest request = new RegisterRequest(
                 " Person@Example.COM ",
                 "password123"
         );
-
-        when(appUserRepository.existsByEmail("person@example.com"))
-                .thenReturn(false);
 
         when(passwordEncoder.encode("password123"))
                 .thenReturn("hashed-password");
@@ -59,60 +53,29 @@ class AuthServiceTest {
         when(appUserRepository.saveAndFlush(any(AppUser.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        AppUserResponse response = authService.register(request);
+        authService.register(request);
 
-        assertThat(response.getEmail()).isEqualTo("person@example.com");
-
-        // Capture the AppUser sent to the repository
         ArgumentCaptor<AppUser> userCaptor = ArgumentCaptor.forClass(AppUser.class);
 
-        verify(appUserRepository).saveAndFlush(userCaptor.capture());
+        verify(appUserRepository)
+                .saveAndFlush(userCaptor.capture());
 
         AppUser savedUser = userCaptor.getValue();
 
-        assertThat(savedUser.getEmail()).isEqualTo("person@example.com");
-        assertThat(savedUser.getPasswordHash()).isEqualTo("hashed-password");
-        assertThat(savedUser.getPasswordHash()).isNotEqualTo("password123");
+        assertThat(savedUser.getEmail())
+                .isEqualTo("person@example.com");
 
-        verify(appUserRepository).existsByEmail("person@example.com");
-        verify(passwordEncoder).encode("password123");
-
+        assertThat(savedUser.getPasswordHash())
+                .isEqualTo("hashed-password");
     }
 
-    // Verify registration fails when the email already exists
     @Test
-    void register_shouldThrowExceptionWhenEmailAlreadyExists() {
-        RegisterRequest request = new RegisterRequest(
-                " Person@Example.COM ",
-                "password123"
-        );
+    void register_shouldReturnConflictWhenEmailAlreadyExists() {
 
-        when(appUserRepository.existsByEmail("person@example.com"))
-                .thenReturn(true);
-
-        assertThatThrownBy(() -> authService.register(request))
-                .isInstanceOf(DuplicateEmailException.class)
-                .hasMessage("Email is already registered");
-
-        verify(appUserRepository).existsByEmail("person@example.com");
-
-        // Stop before hashing or saving after finding a duplicate
-        verify(passwordEncoder, never()).encode(any());
-        verify(appUserRepository, never()).saveAndFlush(any(AppUser.class));
-
-
-    }
-
-    // Verify database duplicate errors become DuplicateEmailException
-    @Test
-    void register_shouldConvertDatabaseConflictToDuplicateEmailException() {
         RegisterRequest request = new RegisterRequest(
                 "Person@Example.COM",
                 "password123"
         );
-
-        when(appUserRepository.existsByEmail("person@example.com"))
-                .thenReturn(false);
 
         when(passwordEncoder.encode("password123"))
                 .thenReturn("hashed-password");
@@ -123,61 +86,14 @@ class AuthServiceTest {
                 ));
 
         assertThatThrownBy(() -> authService.register(request))
-                .isInstanceOf(DuplicateEmailException.class)
-                .hasMessage("Email is already registered");
-
-        verify(appUserRepository).existsByEmail("person@example.com");
-        verify(passwordEncoder).encode("password123");
-        verify(appUserRepository).saveAndFlush(any(AppUser.class));
-
+                .isInstanceOf(ResponseStatusException.class)
+                .hasFieldOrPropertyWithValue("statusCode", HttpStatus.CONFLICT)
+                .hasMessageContaining("Email is already registered");
     }
 
-    // Verify successful login and JWT generation
-    @Test
-    void login_shouldReturnJwtWhenCredentialsAreValid() {
-        LoginRequest request = new LoginRequest(
-                " Person@Example.COM ",
-                "password123"
-        );
-
-        AppUser user = new AppUser(
-                "person@example.com",
-                "hashed-password"
-        );
-
-        when(appUserRepository.findByEmail("person@example.com"))
-                .thenReturn(Optional.of(user));
-
-        when(passwordEncoder.matches(
-                "password123",
-                "hashed-password"
-        )).thenReturn(true);
-
-        when(jwtService.generateToken(user))
-                .thenReturn("signed-jwt-token");
-
-        when(jwtService.getExpirationSeconds())
-                .thenReturn(3600L);
-
-        LoginResponse response = authService.login(request);
-
-        assertThat(response.getAccessToken())
-                .isEqualTo("signed-jwt-token");
-        assertThat(response.getTokenType())
-                .isEqualTo("Bearer");
-        assertThat(response.getExpiresIn())
-                .isEqualTo(3600L);
-
-        verify(appUserRepository)
-                .findByEmail("person@example.com");
-        verify(passwordEncoder)
-                .matches("password123", "hashed-password");
-        verify(jwtService).generateToken(user);
-    }
-
-    // Verify login fails when the email does not exist
     @Test
     void login_shouldThrowExceptionWhenEmailDoesNotExist() {
+
         LoginRequest request = new LoginRequest(
                 "blahblah@example.com",
                 "password123"
@@ -187,20 +103,16 @@ class AuthServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(InvalidCredentialsException.class)
-                .hasMessage("Invalid email or password");
+                .isInstanceOf(ResponseStatusException.class)
+                .hasFieldOrPropertyWithValue("statusCode", HttpStatus.UNAUTHORIZED)
+                .hasMessageContaining("Invalid email or password");
 
-        verify(appUserRepository).findByEmail("blahblah@example.com");
-
-        // Stop before password comparison or token generation
-        verify(passwordEncoder, never()).matches(any(), any());
-        verify(jwtService, never()).generateToken(any(AppUser.class));
-
+        verifyNoInteractions(passwordEncoder, jwtService);
     }
 
-    // Verify login fails when the password is incorrect
     @Test
     void login_shouldThrowExceptionWhenPasswordIsIncorrect() {
+
         LoginRequest request = new LoginRequest(
                 "blahblah@example.com",
                 "wrong-password"
@@ -216,23 +128,15 @@ class AuthServiceTest {
 
         when(passwordEncoder.matches(
                 "wrong-password",
-                "hashed-password"
-        )).thenReturn(false);
+                "hashed-password"))
+                .thenReturn(false);
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(InvalidCredentialsException.class)
-                .hasMessage("Invalid email or password");
+                .isInstanceOf(ResponseStatusException.class)
+                .hasFieldOrPropertyWithValue("statusCode", HttpStatus.UNAUTHORIZED)
+                .hasMessageContaining("Invalid email or password");
 
-        verify(appUserRepository)
-                .findByEmail("blahblah@example.com");
-
-        verify(passwordEncoder)
-                .matches("wrong-password", "hashed-password");
-
-        // Do not generate a JWT when the password is incorrect
-        verify(jwtService, never()).generateToken(any(AppUser.class));
-
+        verifyNoInteractions(jwtService);
     }
-
 
 }

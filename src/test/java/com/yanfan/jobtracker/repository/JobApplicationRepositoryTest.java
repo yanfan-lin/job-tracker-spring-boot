@@ -5,16 +5,13 @@ import com.yanfan.jobtracker.model.JobApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-// Test JPA mappings and ownership-scoped repository queries
+// Verifies ownership and filtering in database queries.
 @DataJpaTest(showSql = false)
 class JobApplicationRepositoryTest {
 
@@ -25,7 +22,6 @@ class JobApplicationRepositoryTest {
     private JobApplicationRepository jobApplicationRepository;
 
 
-    // Verify one user cannot retrieve another user's application by ID
     @Test
     void findByIdAndUserId_shouldNotReturnAnotherUsersApplication() {
 
@@ -40,24 +36,17 @@ class JobApplicationRepositoryTest {
                 "applied"
         );
 
-        Optional<JobApplication> ownerResult =
-                jobApplicationRepository.findByIdAndUserId(
-                        application.getId(),
-                        owner.getId()
-                );
+        assertThat(jobApplicationRepository.findByIdAndUserId(
+                application.getId(),
+                owner.getId()))
+                .isPresent();
 
-        Optional<JobApplication> otherUserResult =
-                jobApplicationRepository.findByIdAndUserId(
-                        application.getId(),
-                        otherUser.getId()
-                );
-
-        assertThat(ownerResult).isPresent();
-        assertThat(otherUserResult).isEmpty();
-
+        assertThat(jobApplicationRepository.findByIdAndUserId(
+                application.getId(),
+                otherUser.getId()))
+                .isEmpty();
     }
 
-    // Verify queries apply both filters and user ownership
     @Test
     void findWithFiltersForUser_shouldReturnOnlyMatchingOwnedApplications() {
 
@@ -65,7 +54,7 @@ class JobApplicationRepositoryTest {
 
         AppUser secondUser = saveUser("second@example.com");
 
-        // Match the requested status and search for the first user
+        // Matches both filters for the first user.
         saveApplication(
                 firstUser,
                 "Amazon",
@@ -73,7 +62,7 @@ class JobApplicationRepositoryTest {
                 "applied"
         );
 
-        // Belong to the first user but fail the status filter
+        // Matches the user but not the requested status.
         saveApplication(
                 firstUser,
                 "Shopify",
@@ -81,7 +70,7 @@ class JobApplicationRepositoryTest {
                 "rejected"
         );
 
-        // Match the filters but belong to the second user
+        // Matches the filters but belongs to another user.
         saveApplication(
                 secondUser,
                 "Microsoft",
@@ -89,54 +78,39 @@ class JobApplicationRepositoryTest {
                 "applied"
         );
 
-        Pageable pageable = PageRequest.of(0, 10);
-
-        Page<JobApplication> result =
-                jobApplicationRepository.findWithFiltersForUser(
+        assertThat(jobApplicationRepository.findWithFiltersForUser(
                         firstUser.getId(),
                         "applied",
                         "developer",
-                        pageable
-                );
-
-        assertThat(result.getContent())
+                        PageRequest.of(0, 10))
+                .getContent())
                 .hasSize(1)
                 .extracting(JobApplication::getCompany)
                 .containsExactly("Amazon");
 
     }
 
-    // Save a user so the database generates a real user ID
     private AppUser saveUser(String email) {
-        AppUser appUser = new AppUser(
+
+        return appUserRepository.saveAndFlush(new AppUser(
                 email,
-                "hashed-password"
-        );
-
-        return appUserRepository.saveAndFlush(appUser);
-
+                "hashed-password"));
     }
 
-    // Save an application with a real foreign-key relationship
     private JobApplication saveApplication(
             AppUser owner,
             String company,
             String title,
-            String status
-    ) {
-        JobApplication application = new JobApplication(
+            String status) {
+
+        return jobApplicationRepository.saveAndFlush(new JobApplication(
+                owner,
                 company,
                 title,
                 status,
                 LocalDate.of(2026, 7, 6),
                 null
-        );
-
-        application.assignToUser(owner);
-
-        return jobApplicationRepository.saveAndFlush(application);
-
+        ));
     }
-
 
 }
