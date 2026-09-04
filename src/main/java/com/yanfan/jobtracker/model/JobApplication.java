@@ -72,10 +72,6 @@ public class JobApplication {
         return id;
     }
 
-    public AppUser getUser() {
-        return user;
-    }
-
     public String getCompany() {
         return company;
     }
