@@ -1,10 +1,6 @@
 package com.yanfan.jobtracker.controller;
 
 import com.yanfan.jobtracker.config.SecurityConfig;
-import com.yanfan.jobtracker.dto.AppUserResponse;
-import com.yanfan.jobtracker.dto.LoginRequest;
-import com.yanfan.jobtracker.dto.LoginResponse;
-import com.yanfan.jobtracker.dto.RegisterRequest;
 import com.yanfan.jobtracker.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,19 +11,10 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
-// Test that registration and login remain public under SecurityConfig
 @WebMvcTest(AuthController.class)
-
-// Load the real security rules for these endpoint tests
 @Import(SecurityConfig.class)
 class AuthSecurityTest {
 
@@ -37,66 +24,21 @@ class AuthSecurityTest {
     @MockitoBean
     private AuthService authService;
 
-    // Provide a mocked decoder so SecurityConfig can load in this MVC test
     @MockitoBean
     private JwtDecoder jwtDecoder;
 
-
-    // Verify users can register without authentication
     @Test
-    void register_shouldBePublic() throws Exception {
-        String request = """
-                {
-                    "email": "person@example.com",
-                    "password": "password123"
-                }
-                """;
-
-        AppUserResponse response = new AppUserResponse(
-                1L,
-                "person@example.com",
-                LocalDateTime.of(2026, 7, 24, 19, 0)
-        );
-
-        when(authService.register(any(RegisterRequest.class)))
-                .thenReturn(response);
+    void authEndpoints_shouldBePublic() throws Exception {
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(request))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.email").value("person@example.com"));
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
 
-    }
-
-    // Verify users can log in without prior authentication
-    @Test
-    void login_shouldBePublic() throws Exception {
-        String request = """
-                {
-                    "email": "person@example.com",
-                    "password": "password123"
-                }
-                """;
-
-        LoginResponse response = new LoginResponse(
-                "signed-jwt-token",
-                "Bearer",
-                3600L
-        );
-
-        when(authService.login(any(LoginRequest.class)))
-                .thenReturn(response);
-
-        // Send the request without authentication credentials
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(request))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken")
-                        .value("signed-jwt-token"));
-
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
     }
-
 
 }

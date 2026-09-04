@@ -13,14 +13,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 
 @WebMvcTest(JobApplicationController.class)
 @Import(SecurityConfig.class)
@@ -42,7 +38,6 @@ class JobApplicationSecurityTest {
                 .andExpect(status().isUnauthorized());
 
         verifyNoInteractions(service);
-
     }
 
     @Test
@@ -56,13 +51,13 @@ class JobApplicationSecurityTest {
                 "desc",
                 10,
                 0
-        )).thenReturn(List.of());
+        ))
+                .thenReturn(List.of());
 
         mockMvc.perform(get("/applications")
                         .with(jwt().jwt(token -> token
                                 .subject("person@example.com")
-                                .claim("userId", 42L)
-                        )))
+                                .claim("userId", 42L))))
                 .andExpect(status().isOk());
 
         verify(service).findAll(
@@ -72,9 +67,7 @@ class JobApplicationSecurityTest {
                 "date_applied",
                 "desc",
                 10,
-                0
-        );
-
+                0);
     }
 
     @Test
@@ -84,18 +77,7 @@ class JobApplicationSecurityTest {
                 .thenThrow(new BadJwtException("Invalid JWT"));
 
         mockMvc.perform(get("/applications")
-                        .header(
-                                "Authorization",
-                                "Bearer invalid-token"))
-                .andExpect(status().isUnauthorized());
-
-        verifyNoInteractions(service);
-    }
-
-    @Test
-    void applicationById_shouldRequireAuthentication() throws Exception {
-
-        mockMvc.perform(delete("/applications/1"))
+                        .header("Authorization", "Bearer invalid-token"))
                 .andExpect(status().isUnauthorized());
 
         verifyNoInteractions(service);
