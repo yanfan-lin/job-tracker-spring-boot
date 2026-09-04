@@ -1,6 +1,6 @@
 package com.yanfan.jobtracker.dto;
 
-// Returns token details after login.
+// Contains token details returned after login.
 public record LoginResponse(
         String accessToken,
         String tokenType,

@@ -47,7 +47,7 @@ public class JwtConfig {
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
 
-        // Reject tokens without a positive numeric user ID.
+        // Reject tokens without a positive user ID
         OAuth2TokenValidator<Jwt> userIdValidator =
                 jwt -> {Object userIdClaim = jwt.getClaim("userId");
 
@@ -62,7 +62,7 @@ public class JwtConfig {
             return OAuth2TokenValidatorResult.success();
         };
 
-        // Keep the standard time checks alongside the user ID check.
+        // Keep the standard expiration checks and also validate the user ID
         decoder.setJwtValidator(
                 new DelegatingOAuth2TokenValidator<>(
                         JwtValidators.createDefault(),

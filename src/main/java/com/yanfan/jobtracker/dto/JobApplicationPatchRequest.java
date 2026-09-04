@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
-// Carries optional changes to a job application.
+// Accepts fields for updating a job application.
 public record JobApplicationPatchRequest(
 
         @Pattern(

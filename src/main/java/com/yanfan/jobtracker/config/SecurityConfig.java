@@ -28,10 +28,10 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                // CSRF protection is unnecessary because authentication uses bearer tokens instead of cookies
+                // CSRF protection is unnecessary because authentication uses headers instead of cookies
                 .csrf(csrf -> csrf.disable())
 
-                // Each request carries its own JWT, so the server does not need sessions.
+                // Each request carries its own JWT, so the server does not need sessions
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )

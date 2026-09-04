@@ -3,7 +3,7 @@ package com.yanfan.jobtracker.dto;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// Returns job application details to API clients.
+// Contains job application details returned to API clients.
 public record JobApplicationResponse(
         Long id,
         String company,

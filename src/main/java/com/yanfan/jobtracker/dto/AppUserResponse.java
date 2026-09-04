@@ -2,7 +2,7 @@ package com.yanfan.jobtracker.dto;
 
 import java.time.LocalDateTime;
 
-// Returns safe user details after registration.
+// Contains user details returned after registration.
 public record AppUserResponse(
         Long id,
         String email,

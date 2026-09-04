@@ -18,7 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
-// Manages job applications and ownership.
+// Manages each user's job applications.
 @Service
 public class JobApplicationService {
 

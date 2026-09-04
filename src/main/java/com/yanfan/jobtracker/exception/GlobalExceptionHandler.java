@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-// Handles application errors and returns consistent API responses.
+// Turns application errors into API responses.
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

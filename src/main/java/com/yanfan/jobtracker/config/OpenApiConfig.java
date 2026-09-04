@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import org.springframework.context.annotation.Configuration;
 
-// Adds JWT authentication to Swagger UI.
+// Shows JWT authentication in Swagger UI.
 @Configuration
 @SecurityScheme(
         name = "bearerAuth",
